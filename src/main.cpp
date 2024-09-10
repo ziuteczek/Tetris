@@ -8,6 +8,7 @@
 #include "./class/game.hpp"
 
 bool init(SDL_Window **gWindow, SDL_Renderer **gRenderer);
+void load(TTF_Font **gFont);
 void close(SDL_Window *gWindow, SDL_Renderer *gRenderer);
 
 int main(int argc, char **argv)
@@ -15,13 +16,17 @@ int main(int argc, char **argv)
     SDL_Window *gWindow = nullptr;
     SDL_Renderer *gRenderer = nullptr;
 
-    init(&gWindow, &gRenderer);
+    TTF_Font *gFont = nullptr;
 
-    Game tGame(gWindow, gRenderer);
+    init(&gWindow, &gRenderer);
+    load(&gFont);
+
+    Game tGame(gWindow, gRenderer, gFont);
 
     while (!tGame.exit)
     {
         tGame.handleEvents();
+        tGame.update();
         tGame.render();
     }
 
@@ -32,13 +37,13 @@ bool init(SDL_Window **gWindow, SDL_Renderer **gRenderer)
 {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0)
     {
-        std::cout << SDL_GetError() << std::endl;
+        std::cerr << SDL_GetError() << std::endl;
         return false;
     }
 
     if (TTF_Init() < 0)
     {
-        std::cout << TTF_GetError() << std::endl;
+        std::cerr << TTF_GetError() << std::endl;
         return false;
     }
 
@@ -46,7 +51,7 @@ bool init(SDL_Window **gWindow, SDL_Renderer **gRenderer)
 
     if (*gWindow == nullptr)
     {
-        std::cout << SDL_GetError() << std::endl;
+        std::cerr << SDL_GetError() << std::endl;
         return false;
     }
 
@@ -54,10 +59,19 @@ bool init(SDL_Window **gWindow, SDL_Renderer **gRenderer)
 
     if (*gRenderer == nullptr)
     {
-        std::cout << SDL_GetError() << std::endl;
+        std::cerr << SDL_GetError() << std::endl;
         return false;
     }
     return true;
+}
+void load(TTF_Font **gFont)
+{
+    *gFont = TTF_OpenFont("./bin/fonts/PixelifySans-Regular.ttf", 32);
+
+    if (*gFont == nullptr)
+    {
+        std::cerr << TTF_GetError() << std::endl;
+    }
 }
 void close(SDL_Window *gWindow, SDL_Renderer *gRenderer)
 {

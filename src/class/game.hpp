@@ -2,6 +2,8 @@
 
 #include <array>
 
+#include "./texture.hpp"
+
 typedef std::array<int, 4> block;
 
 enum arrows
@@ -33,38 +35,43 @@ private:
     SDL_Window *gWindow = nullptr;
     SDL_Renderer *gRenderer = nullptr;
 
+    TTF_Font *gFont = nullptr;
+
     SDL_Event e;
 
     int cellW, cellH;
+
+    Uint64 startTime;
+    Uint64 currentTime;
+    GTexture currentTimeTexture;
 
     std::array<tBlock, BLOCK_TYPES_TOTAL> blockTypes;
 
     arrows keyPressed = ARROW_NONE;
     blockTypesNames nextBlock;
 
+    std::string getCurrentTimeStr();
+
     void handleGameResize();
 
-    void
-    loadBlocks();
+    void loadBlocks();
 
 public:
-    Game(SDL_Window *loadWindow, SDL_Renderer *loadRenderer);
+    Game(SDL_Window *loadWindow, SDL_Renderer *loadRenderer, TTF_Font *loadFont);
 
     SDL_Rect gameViewPort;
 
     bool exit = false;
 
     void handleEvents();
+    void update();
     void render();
 };
-Game::Game(SDL_Window *loadWindow, SDL_Renderer *loadRenderer) : gWindow(loadWindow), gRenderer(loadRenderer)
+Game::Game(SDL_Window *loadWindow, SDL_Renderer *loadRenderer, TTF_Font *loadFont) : gWindow(loadWindow), gRenderer(loadRenderer), currentTimeTexture(gRenderer), gFont(loadFont)
 {
     handleGameResize();
-
-    int cellW = gameViewPort.w / 10;
-    int cellH = gameViewPort.h / 20;
-
     loadBlocks();
+    startTime = SDL_GetTicks64();
 }
 void Game::handleEvents()
 {
@@ -99,8 +106,15 @@ void Game::handleEvents()
                 keyPressed = ARROW_LEFT;
                 break;
             }
+            break;
         }
     }
+}
+void Game::update()
+{
+    currentTime = SDL_GetTicks64() - startTime;
+
+    currentTimeTexture.loadTextTexture(getCurrentTimeStr(), {0, 0, 0, SDL_ALPHA_OPAQUE}, gFont);
 }
 void Game::render()
 {
@@ -110,15 +124,21 @@ void Game::render()
     SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, SDL_ALPHA_OPAQUE);
     SDL_RenderDrawRect(gRenderer, &gameViewPort);
 
+    // currentTimeTexture.render(0, 0, nullptr);
+
     SDL_RenderPresent(gRenderer);
 }
 void Game::handleGameResize()
 {
     int screenW, screenH;
+
     SDL_GetWindowSize(gWindow, &screenW, &screenH);
 
     gameViewPort = {25, 0, 350, 700};
     gameViewPort.y = (screenH - gameViewPort.h) / 2;
+
+    cellW = gameViewPort.w / 10;
+    cellH = gameViewPort.h / 20;
 }
 void Game::loadBlocks()
 {
@@ -156,4 +176,14 @@ void Game::loadBlocks()
     blockTypes[BLOCK_TYPE_DOG_REVERSED][1] = {1, 0};
     blockTypes[BLOCK_TYPE_DOG_REVERSED][2] = {1, 1};
     blockTypes[BLOCK_TYPE_DOG_REVERSED][3] = {2, 1};
+}
+std::string Game::getCurrentTimeStr()
+{
+    float currentTimeFormated = round(currentTime / 10.0F) / 100;
+
+    std::string currentTimeStr = std::to_string(currentTimeFormated);
+    int dotIndex = currentTimeStr.find('.') + 1;
+    currentTimeStr.erase(dotIndex + 2, currentTimeStr.length() - dotIndex);
+
+    return currentTimeStr;
 }
