@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <string>
-#include <thread>
+#include <ctime>
 
 #include "./class/game.hpp"
 
@@ -17,6 +17,8 @@ int main(int argc, char **argv)
     SDL_Renderer *gRenderer = nullptr;
 
     TTF_Font *gFont = nullptr;
+
+    srand(time(NULL));
 
     init(&gWindow, &gRenderer);
     load(&gFont);
