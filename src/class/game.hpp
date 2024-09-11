@@ -1,6 +1,8 @@
 #include <SDL2/SDL.h>
 
 #include <array>
+#include <vector>
+#include <cmath>
 
 #include "./texture.hpp"
 
@@ -51,8 +53,10 @@ private:
     SDL_Point currentBlockPos = {0, 0};
 
     Uint64 startTime;
-    Uint64 currentTime;
+    Uint64 currentFrameTime;
     GTexture currentTimeTexture;
+
+    std::vector<SDL_Point> placedCells;
 
     std::array<block, BLOCK_TYPES_TOTAL> blockTypes;
 
@@ -154,14 +158,33 @@ void Game::update()
                 currentBlockPos.x++;
             }
             break;
-        default:
-            break;
         }
     }
 
     // Time handle
-    currentTime = SDL_GetTicks64() - startTime;
+    Uint64 lastFrameTime = currentFrameTime;
+    currentFrameTime = SDL_GetTicks64() - startTime;
     currentTimeTexture.loadTextTexture(getCurrentTimeStr(), {0, 0, 0, SDL_ALPHA_OPAQUE}, gFont);
+
+    // In milisecounds
+    int autoFallFrequency = 750;
+    if (currentFrameTime % autoFallFrequency < lastFrameTime % autoFallFrequency || currentFrameTime - lastFrameTime > autoFallFrequency)
+    {
+        currentBlockPos.y++;
+        bool blockPlaced = false;
+        for (auto cell : currentBlock->cells)
+        {
+            if (currentBlockPos.y + cell.y == 20)
+            {
+                blockPlaced = true;
+                break;
+            }
+        }
+        if (blockPlaced)
+        {
+            
+        }
+    }
 }
 void Game::render()
 {
@@ -195,7 +218,7 @@ void Game::handleGameResize()
 }
 void Game::renderCurrentBlock()
 {
-    SDL_SetRenderDrawColor(gRenderer, 0xFF, 0x00, 0x00, SDL_ALPHA_OPAQUE);
+    SDL_SetRenderDrawColor(gRenderer, currentBlock->color.r, currentBlock->color.g, currentBlock->color.b, SDL_ALPHA_OPAQUE);
 
     for (auto cell : currentBlock->cells)
     {
@@ -222,22 +245,29 @@ void Game::getCurrentBlockMaxRightTilt()
 void Game::loadBlocks()
 {
     blockTypes[BLOCK_TYPE_T].cells = {0, 1, 1, 1, 2, 1, 1, 0};
+    blockTypes[BLOCK_TYPE_T].color = {0x00, 0xFF, 0x00, SDL_ALPHA_OPAQUE};
 
     blockTypes[BLOCK_TYPE_SQUARE].cells = {0, 0, 1, 0, 0, 1, 1, 1};
+    blockTypes[BLOCK_TYPE_SQUARE].color = {0xFF, 0x00, 0x00, SDL_ALPHA_OPAQUE};
 
     blockTypes[BLOCK_TYPE_STICK].cells = {0, 0, 0, 1, 0, 2, 0, 3};
+    blockTypes[BLOCK_TYPE_STICK].color = {0x00, 0x00, 0xFF, SDL_ALPHA_OPAQUE};
 
     blockTypes[BLOCK_TYPE_L].cells = {0, 0, 0, 1, 0, 2, 1, 2};
+    blockTypes[BLOCK_TYPE_L].color = {0x00, 0xFF, 0xFF, SDL_ALPHA_OPAQUE};
 
     blockTypes[BLOCK_TYPE_L_REVERSED].cells = {1, 0, 1, 1, 1, 2, 0, 2};
+    blockTypes[BLOCK_TYPE_L_REVERSED].color = {0xFF, 0xFF, 0x00, SDL_ALPHA_OPAQUE};
 
     blockTypes[BLOCK_TYPE_DOG].cells = {1, 0, 2, 0, 0, 1, 1, 1};
+    blockTypes[BLOCK_TYPE_DOG].color = {0xFF, 0xFF, 0x00, SDL_ALPHA_OPAQUE};
 
     blockTypes[BLOCK_TYPE_DOG_REVERSED].cells = {0, 0, 1, 0, 1, 1, 2, 1};
+    blockTypes[BLOCK_TYPE_L_REVERSED].color = {0xFF, 0x00, 0xFF, SDL_ALPHA_OPAQUE};
 }
 std::string Game::getCurrentTimeStr()
 {
-    float currentTimeFormated = round(currentTime / 10.0F) / 100;
+    float currentTimeFormated = std::round(currentFrameTime / 10.0F) / 100;
 
     std::string currentTimeStr = std::to_string(currentTimeFormated);
     int dotIndex = currentTimeStr.find('.') + 1;
