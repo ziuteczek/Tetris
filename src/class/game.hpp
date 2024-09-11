@@ -16,6 +16,11 @@ typedef struct block
     SDL_Color color;
     std::array<SDL_Point, CELLS_IN_BLOCK> cells;
 } block;
+typedef struct cell
+{
+    SDL_Color color;
+    SDL_Point location;
+} cell;
 
 enum arrows
 {
@@ -56,7 +61,7 @@ private:
     Uint64 currentFrameTime;
     GTexture currentTimeTexture;
 
-    std::vector<SDL_Point> placedCells;
+    std::vector<cell> placedCells;
 
     std::array<block, BLOCK_TYPES_TOTAL> blockTypes;
 
@@ -75,10 +80,14 @@ private:
     void loadBlocks();
 
     void getCurrentBlockMaxRightTilt();
+    void placeCurrentBlock();
+    bool isBlockPlaced();
 
-    void renderCurrentBlock();
+    void drawCurrentBlock();
+    void drawPlacedBlocks();
     void renderNextBlock();
-    void renderPlacedBlocks();
+
+    void drawCell(SDL_Point cords, SDL_Color color);
 
 public:
     Game(SDL_Window *loadWindow, SDL_Renderer *loadRenderer, TTF_Font *loadFont);
@@ -167,22 +176,18 @@ void Game::update()
     currentTimeTexture.loadTextTexture(getCurrentTimeStr(), {0, 0, 0, SDL_ALPHA_OPAQUE}, gFont);
 
     // In milisecounds
-    int autoFallFrequency = 750;
+    const int autoFallFrequency = 750;
     if (currentFrameTime % autoFallFrequency < lastFrameTime % autoFallFrequency || currentFrameTime - lastFrameTime > autoFallFrequency)
     {
         currentBlockPos.y++;
-        bool blockPlaced = false;
-        for (auto cell : currentBlock->cells)
+        if (isBlockPlaced())
         {
-            if (currentBlockPos.y + cell.y == 20)
-            {
-                blockPlaced = true;
-                break;
-            }
-        }
-        if (blockPlaced)
-        {
-            
+            placeCurrentBlock();
+
+            currentBlock = nextBlock;
+            nextBlock = &blockTypes[rand() % BLOCK_TYPES_TOTAL];
+
+            currentBlockPos = {0, 0};
         }
     }
 }
@@ -198,11 +203,58 @@ void Game::render()
 
     SDL_RenderSetViewport(gRenderer, &gameViewPort);
 
-    renderCurrentBlock();
+    drawCurrentBlock();
+    drawPlacedBlocks();
+    // renderNextBlock();
 
     SDL_RenderSetViewport(gRenderer, &generalViewPort);
 
     SDL_RenderPresent(gRenderer);
+}
+void Game::drawCell(SDL_Point coords, SDL_Color color)
+{
+    SDL_SetRenderDrawColor(gRenderer, color.r, color.g, color.b, color.a);
+
+    SDL_Rect cellRect;
+
+    cellRect.x = cellW * coords.x;
+    cellRect.y = cellH * coords.y;
+
+    cellRect.w = cellW;
+    cellRect.h = cellH;
+
+    SDL_RenderFillRect(gRenderer, &cellRect);
+}
+bool Game::isBlockPlaced()
+{
+    for (auto currentBlockCell : currentBlock->cells)
+    {
+        if (currentBlockPos.y + currentBlockCell.y == ROWS_QUANTITY)
+        {
+            return true;
+        }
+        for (auto placedCell : placedCells)
+        {
+            if (currentBlockPos.y + currentBlockCell.y == placedCell.location.y)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+void Game::placeCurrentBlock()
+{
+    for (auto currentBlockCell : currentBlock->cells)
+    {
+        cell cellToPlace;
+
+        cellToPlace.color = currentBlock->color;
+        cellToPlace.location.x = currentBlockCell.x + currentBlockPos.x;
+        cellToPlace.location.y = currentBlockCell.y + currentBlockPos.y;
+
+        placedCells.push_back(cellToPlace);
+    }
 }
 void Game::handleGameResize()
 {
@@ -216,21 +268,22 @@ void Game::handleGameResize()
     cellW = gameViewPort.w / COLUMNS_QUANTITY;
     cellH = gameViewPort.h / ROWS_QUANTITY;
 }
-void Game::renderCurrentBlock()
+void Game::drawCurrentBlock()
 {
-    SDL_SetRenderDrawColor(gRenderer, currentBlock->color.r, currentBlock->color.g, currentBlock->color.b, SDL_ALPHA_OPAQUE);
-
     for (auto cell : currentBlock->cells)
     {
-        SDL_Rect cellRect;
+        SDL_Point cellDrawPoint = {cell.x + currentBlockPos.x, cell.y + currentBlockPos.y};
 
-        cellRect.x = cellW * currentBlockPos.x + cell.x * cellW;
-        cellRect.y = cellH * currentBlockPos.y + cell.y * cellH;
+        drawCell(cellDrawPoint, currentBlock->color);
+    }
+}
+void Game::drawPlacedBlocks()
+{
+    for (auto placedCell : placedCells)
+    {
+        SDL_Point cellCords = {placedCell.location.x, placedCell.location.y};
 
-        cellRect.w = cellW;
-        cellRect.h = cellH;
-
-        SDL_RenderFillRect(gRenderer, &cellRect);
+        drawCell(cellCords, placedCell.color);
     }
 }
 void Game::getCurrentBlockMaxRightTilt()
