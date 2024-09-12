@@ -176,7 +176,7 @@ void Game::update()
         switch (keyPressed)
         {
         case ARROW_LEFT:
-            if (currentBlockPos.x != 0)
+            if (!checkBlockColisionLeft())
             {
                 currentBlockPos.x--;
             }
@@ -326,7 +326,7 @@ void Game::calcCurrentBlockMaxRightTilt()
     {
         maxTilt = std::max(maxTilt, cell.x);
     }
-    currentBlockMaxRightTilt = +maxTilt + 1;
+    currentBlockMaxRightTilt = maxTilt + 1;
 }
 /*
 bool Game::checkBlockColisions(checkColisionDirections directions)
@@ -384,7 +384,7 @@ bool Game::checkBlockColisionLeft()
         for (auto blockCell : currentBlock->cells)
         {
             bool cellsSameLevel = blockCell.y + currentBlockPos.y == placedCell.location.y;
-            bool cellsSticking = blockCell.x + currentBlockPos.x + 1 == placedCell.location.x;
+            bool cellsSticking = blockCell.x + currentBlockPos.x - 1 == placedCell.location.x;
 
             if (cellsSameLevel && cellsSticking)
             {
