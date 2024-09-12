@@ -182,7 +182,7 @@ void Game::update()
             }
             break;
         case ARROW_RIGHT:
-            if (checkBlockColisionRight())
+            if (!checkBlockColisionRight())
             {
                 currentBlockPos.x++;
             }
@@ -208,14 +208,8 @@ void Game::update()
 
     if (blockAutoMoved || blockMovedPlayer)
     {
-        if (blockAutoMoved || keyPressed == ARROW_DOWN)
-        {
-            currentBlockPos.y++;
-        }
-        std::cout << SDL_GetTicks() << std::endl;
         if (isBlockPlaced())
         {
-
             placeCurrentBlock();
 
             currentBlock = nextBlock;
@@ -223,6 +217,10 @@ void Game::update()
             calcCurrentBlockMaxRightTilt();
 
             currentBlockPos = {0, 0};
+        }
+        if (blockAutoMoved || keyPressed == ARROW_DOWN)
+        {
+            currentBlockPos.y++;
         }
     }
 }
@@ -358,22 +356,43 @@ bool Game::checkBlockColisionRight()
 {
     if (currentBlockPos.x == COLUMNS_QUANTITY - currentBlockMaxRightTilt)
     {
-        return false;
+        return true;
     }
     for (auto placedCell : placedCells)
     {
         for (auto blockCell : currentBlock->cells)
         {
-            bool cellsSameLevel = blockCell.y == placedCell.location.y;
-            bool cellsSticking = blockCell.x + 1 == placedCell.location.x;
+            bool cellsSameLevel = blockCell.y + currentBlockPos.y == placedCell.location.y;
+            bool cellsSticking = blockCell.x + currentBlockPos.x + 1 == placedCell.location.x;
 
             if (cellsSameLevel && cellsSticking)
             {
-                return false;
+                return true;
             }
         }
     }
-    return true;
+    return false;
+}
+bool Game::checkBlockColisionLeft()
+{
+    if (currentBlockPos.x == 0)
+    {
+        return true;
+    }
+    for (auto placedCell : placedCells)
+    {
+        for (auto blockCell : currentBlock->cells)
+        {
+            bool cellsSameLevel = blockCell.y + currentBlockPos.y == placedCell.location.y;
+            bool cellsSticking = blockCell.x + currentBlockPos.x + 1 == placedCell.location.x;
+
+            if (cellsSameLevel && cellsSticking)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 void Game::loadBlocks()
 {
