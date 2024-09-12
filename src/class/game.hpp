@@ -16,12 +16,27 @@ typedef struct block
     SDL_Color color;
     std::array<SDL_Point, CELLS_IN_BLOCK> cells;
 } block;
+
 typedef struct cell
 {
     SDL_Color color;
     SDL_Point location;
 } cell;
-
+/*
+enum checkColisionDirections
+{
+    COLISION_DIRECTION_RIGHT = 0b1,
+    COLISION_DIRECTION_BOTTOM = 0b10,
+    COLISION_DIRECTION_LEFT = 0b100,
+};
+enum checkColisionDirectionsENUM
+{
+    COLISION_DIRECTION_RIGHT,
+    COLISION_DIRECTION_BOTTOM,
+    COLISION_DIRECTION_LEFT,
+    COLISION_DIRECTION_TOTAL
+};
+*/
 enum arrows
 {
     ARROW_NONE,
@@ -79,12 +94,16 @@ private:
 
     void loadBlocks();
 
-    void getCurrentBlockMaxRightTilt();
+    void calcCurrentBlockMaxRightTilt();
     void placeCurrentBlock();
     bool isBlockPlaced();
 
+    bool checkBlockColisionLeft();
+    bool checkBlockColisionRight();
+    bool checkBlockColisions(/*checkColisionDirections directions*/);
+
     void drawCurrentBlock();
-    void drawPlacedBlocks();
+    void drawPlacedCells();
     void renderNextBlock();
 
     void drawCell(SDL_Point cords, SDL_Color color);
@@ -108,7 +127,7 @@ Game::Game(SDL_Window *loadWindow, SDL_Renderer *loadRenderer, TTF_Font *loadFon
     currentBlock = &blockTypes[rand() % BLOCK_TYPES_TOTAL];
     nextBlock = &blockTypes[rand() % BLOCK_TYPES_TOTAL];
 
-    getCurrentBlockMaxRightTilt();
+    calcCurrentBlockMaxRightTilt();
 
     startTime = SDL_GetTicks64();
 }
@@ -162,7 +181,7 @@ void Game::update()
             }
             break;
         case ARROW_RIGHT:
-            if (currentBlockPos.x != COLUMNS_QUANTITY + currentBlockMaxRightTilt)
+            if (checkBlockColisionRight())
             {
                 currentBlockPos.x++;
             }
@@ -177,15 +196,23 @@ void Game::update()
 
     // In milisecounds
     const int autoFallFrequency = 750;
-    if (currentFrameTime % autoFallFrequency < lastFrameTime % autoFallFrequency || currentFrameTime - lastFrameTime > autoFallFrequency)
+
+    // When less than %autoFallFrequency% passed since last frame
+    bool moveBlock1 = currentFrameTime % autoFallFrequency < lastFrameTime % autoFallFrequency;
+    // When more than %autoFallFrequency% passed since last frame (in case of a lag)
+    bool moveBlock2 = currentFrameTime - lastFrameTime > autoFallFrequency;
+
+    if (moveBlock1 || moveBlock2)
     {
         currentBlockPos.y++;
         if (isBlockPlaced())
         {
+            currentBlockPos.y--;
             placeCurrentBlock();
 
             currentBlock = nextBlock;
             nextBlock = &blockTypes[rand() % BLOCK_TYPES_TOTAL];
+            calcCurrentBlockMaxRightTilt();
 
             currentBlockPos = {0, 0};
         }
@@ -204,7 +231,7 @@ void Game::render()
     SDL_RenderSetViewport(gRenderer, &gameViewPort);
 
     drawCurrentBlock();
-    drawPlacedBlocks();
+    drawPlacedCells();
     // renderNextBlock();
 
     SDL_RenderSetViewport(gRenderer, &generalViewPort);
@@ -235,7 +262,7 @@ bool Game::isBlockPlaced()
         }
         for (auto placedCell : placedCells)
         {
-            if (currentBlockPos.y + currentBlockCell.y == placedCell.location.y)
+            if (currentBlockPos.y + currentBlockCell.y == placedCell.location.y && currentBlockPos.x == placedCell.location.x)
             {
                 return true;
             }
@@ -277,7 +304,7 @@ void Game::drawCurrentBlock()
         drawCell(cellDrawPoint, currentBlock->color);
     }
 }
-void Game::drawPlacedBlocks()
+void Game::drawPlacedCells()
 {
     for (auto placedCell : placedCells)
     {
@@ -286,14 +313,59 @@ void Game::drawPlacedBlocks()
         drawCell(cellCords, placedCell.color);
     }
 }
-void Game::getCurrentBlockMaxRightTilt()
+void Game::calcCurrentBlockMaxRightTilt()
 {
     int maxTilt = 0;
     for (auto cell : currentBlock->cells)
     {
         maxTilt = std::max(maxTilt, cell.x);
     }
-    currentBlockMaxRightTilt = -maxTilt - 1;
+    currentBlockMaxRightTilt = +maxTilt + 1;
+}
+/*
+bool Game::checkBlockColisions(checkColisionDirections directions)
+{
+    std::vector<checkColisionDirectionsENUM> directionsChosen;
+    for (int i = 0; i < COLISION_DIRECTION_TOTAL; i++)
+    {
+        if ((reinterpret_cast<bool *>(&directions)[i]))
+        {
+            directionsChosen.push_back(*reinterpret_cast<checkColisionDirectionsENUM *>(&i));
+        }
+    }
+    for (auto direction : directionsChosen)
+    {
+        switch (direction)
+        {
+        case COLISION_DIRECTION_BOTTOM:
+
+            break;
+        case COLISION_DIRECTION_LEFT:
+            break;
+        }
+    }
+}
+*/
+bool Game::checkBlockColisionRight()
+{
+    bool isBlocking = true;
+    if (currentBlockPos.x == COLUMNS_QUANTITY - currentBlockMaxRightTilt)
+    {
+        return false;
+    }
+    for (auto placedCell : placedCells)
+    {
+        for (auto blockCell : currentBlock->cells)
+        {
+            bool cellsSameLevel = blockCell.y == placedCell.location.y;
+            bool cellsSticking = blockCell.x + 1 == placedCell.location.x;
+            if (cellsSameLevel && cellsSticking)
+            {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 void Game::loadBlocks()
 {

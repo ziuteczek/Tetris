@@ -1,15 +1,19 @@
 {
     "configurations": [
         {
-            "name": "Linux",
+            "name": "Praktyki",
             "includePath": [
-                "${workspaceFolder}/**"
+                "C:\\Users\\Praktyki\\Desktop\\SDL2\\SDL2-lib\\include"
             ],
-            "defines": [],
-            "compilerPath": "/usr/bin/g++",
-            "cStandard": "c17",
-            "cppStandard": "c++14",
-            "intelliSenseMode": "linux-clang-x64"
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "compilerPath": "C:/MinGW/bin/g++.exe",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-gcc-x86"
         }
     ],
     "version": 4
