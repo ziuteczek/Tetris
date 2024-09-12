@@ -20,7 +20,7 @@ typedef struct block
 typedef struct cell
 {
     SDL_Color color;
-    SDL_Point location;
+    SDL_Point pos;
 } cell;
 /*
 enum checkColisionDirections
@@ -171,23 +171,27 @@ void Game::handleEvents()
 void Game::update()
 {
     bool blockMovedPlayer = false;
+
+    switch (keyPressed)
+    {
+    case ARROW_NONE:
+        break;
+    case ARROW_LEFT:
+        if (!checkBlockColisionLeft())
+        {
+            currentBlockPos.x--;
+        }
+        break;
+    case ARROW_RIGHT:
+        if (!checkBlockColisionRight())
+        {
+            currentBlockPos.x++;
+        }
+        break;
+    }
+
     if (keyPressed != ARROW_NONE)
     {
-        switch (keyPressed)
-        {
-        case ARROW_LEFT:
-            if (!checkBlockColisionLeft())
-            {
-                currentBlockPos.x--;
-            }
-            break;
-        case ARROW_RIGHT:
-            if (!checkBlockColisionRight())
-            {
-                currentBlockPos.x++;
-            }
-            break;
-        }
         blockMovedPlayer = true;
     }
 
@@ -262,13 +266,15 @@ bool Game::isBlockPlaced()
 {
     for (auto currentBlockCell : currentBlock->cells)
     {
-        if (currentBlockPos.y + currentBlockCell.y + 1 == ROWS_QUANTITY)
+        int currentBlockCellY = currentBlockPos.y + currentBlockCell.y + 1;
+
+        if (currentBlockCellY == ROWS_QUANTITY)
         {
             return true;
         }
         for (auto placedCell : placedCells)
         {
-            if (currentBlockPos.x + currentBlockCell.x == placedCell.location.x && currentBlockPos.y + currentBlockCell.y + 1 == placedCell.location.y)
+            if (currentBlockPos.x + currentBlockCell.x == placedCell.pos.x && currentBlockCellY == placedCell.pos.y)
             {
                 return true;
             }
@@ -283,8 +289,8 @@ void Game::placeCurrentBlock()
         cell cellToPlace;
 
         cellToPlace.color = currentBlock->color;
-        cellToPlace.location.x = currentBlockCell.x + currentBlockPos.x;
-        cellToPlace.location.y = currentBlockCell.y + currentBlockPos.y;
+        cellToPlace.pos.x = currentBlockCell.x + currentBlockPos.x;
+        cellToPlace.pos.y = currentBlockCell.y + currentBlockPos.y;
 
         placedCells.push_back(cellToPlace);
     }
@@ -314,7 +320,7 @@ void Game::drawPlacedCells()
 {
     for (auto placedCell : placedCells)
     {
-        SDL_Point cellCords = {placedCell.location.x, placedCell.location.y};
+        SDL_Point cellCords = {placedCell.pos.x, placedCell.pos.y};
 
         drawCell(cellCords, placedCell.color);
     }
@@ -362,8 +368,8 @@ bool Game::checkBlockColisionRight()
     {
         for (auto blockCell : currentBlock->cells)
         {
-            bool cellsSameLevel = blockCell.y + currentBlockPos.y == placedCell.location.y;
-            bool cellsSticking = blockCell.x + currentBlockPos.x + 1 == placedCell.location.x;
+            bool cellsSameLevel = blockCell.y + currentBlockPos.y == placedCell.pos.y;
+            bool cellsSticking = blockCell.x + currentBlockPos.x + 1 == placedCell.pos.x;
 
             if (cellsSameLevel && cellsSticking)
             {
@@ -383,8 +389,8 @@ bool Game::checkBlockColisionLeft()
     {
         for (auto blockCell : currentBlock->cells)
         {
-            bool cellsSameLevel = blockCell.y + currentBlockPos.y == placedCell.location.y;
-            bool cellsSticking = blockCell.x + currentBlockPos.x - 1 == placedCell.location.x;
+            bool cellsSameLevel = blockCell.y + currentBlockPos.y == placedCell.pos.y;
+            bool cellsSticking = blockCell.x + currentBlockPos.x - 1 == placedCell.pos.x;
 
             if (cellsSameLevel && cellsSticking)
             {
