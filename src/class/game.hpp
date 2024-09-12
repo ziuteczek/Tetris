@@ -170,6 +170,7 @@ void Game::handleEvents()
 }
 void Game::update()
 {
+    bool blockMovedPlayer = false;
     if (keyPressed != ARROW_NONE)
     {
         switch (keyPressed)
@@ -187,6 +188,7 @@ void Game::update()
             }
             break;
         }
+        blockMovedPlayer = true;
     }
 
     // Time handle
@@ -198,16 +200,22 @@ void Game::update()
     const int autoFallFrequency = 750;
 
     // When less than %autoFallFrequency% passed since last frame
-    bool moveBlock1 = currentFrameTime % autoFallFrequency < lastFrameTime % autoFallFrequency;
+    bool blockAutoMoved1 = currentFrameTime % autoFallFrequency < lastFrameTime % autoFallFrequency;
     // When more than %autoFallFrequency% passed since last frame (in case of a lag)
-    bool moveBlock2 = currentFrameTime - lastFrameTime > autoFallFrequency;
+    bool blockAutoMoved2 = currentFrameTime - lastFrameTime > autoFallFrequency;
 
-    if (moveBlock1 || moveBlock2)
+    bool blockAutoMoved = blockAutoMoved1 || blockAutoMoved2;
+
+    if (blockAutoMoved || blockMovedPlayer)
     {
-        currentBlockPos.y++;
+        if (blockAutoMoved || keyPressed == ARROW_DOWN)
+        {
+            currentBlockPos.y++;
+        }
+        std::cout << SDL_GetTicks() << std::endl;
         if (isBlockPlaced())
         {
-            currentBlockPos.y--;
+
             placeCurrentBlock();
 
             currentBlock = nextBlock;
@@ -256,13 +264,13 @@ bool Game::isBlockPlaced()
 {
     for (auto currentBlockCell : currentBlock->cells)
     {
-        if (currentBlockPos.y + currentBlockCell.y == ROWS_QUANTITY)
+        if (currentBlockPos.y + currentBlockCell.y + 1 == ROWS_QUANTITY)
         {
             return true;
         }
         for (auto placedCell : placedCells)
         {
-            if (currentBlockPos.y + currentBlockCell.y == placedCell.location.y && currentBlockPos.x == placedCell.location.x)
+            if (currentBlockPos.x + currentBlockCell.x == placedCell.location.x && currentBlockPos.y + currentBlockCell.y + 1 == placedCell.location.y)
             {
                 return true;
             }
@@ -348,7 +356,6 @@ bool Game::checkBlockColisions(checkColisionDirections directions)
 */
 bool Game::checkBlockColisionRight()
 {
-    bool isBlocking = true;
     if (currentBlockPos.x == COLUMNS_QUANTITY - currentBlockMaxRightTilt)
     {
         return false;
@@ -359,6 +366,7 @@ bool Game::checkBlockColisionRight()
         {
             bool cellsSameLevel = blockCell.y == placedCell.location.y;
             bool cellsSticking = blockCell.x + 1 == placedCell.location.x;
+
             if (cellsSameLevel && cellsSticking)
             {
                 return false;
