@@ -71,7 +71,8 @@ private:
 
     int cellW, cellH;
     int currentBlockMaxRightTilt;
-    SDL_Point currentBlockPos = {0, 0};
+    int currentBlockLength;
+    SDL_Point currentBlockPos;
 
     Uint64 startTime;
     Uint64 currentFrameTime;
@@ -96,6 +97,7 @@ private:
     void loadBlocks();
 
     void calcCurrentBlockMaxRightTilt();
+    void calcCurrentBlockLength();
     void placeCurrentBlock();
     bool isBlockPlaced();
 
@@ -132,6 +134,10 @@ Game::Game(SDL_Window *loadWindow, SDL_Renderer *loadRenderer, TTF_Font *loadFon
     nextBlock = &blockTypes[rand() % BLOCK_TYPES_TOTAL];
 
     calcCurrentBlockMaxRightTilt();
+    calcCurrentBlockLength();
+
+    currentBlockPos.x = rand() % (COLUMNS_QUANTITY - currentBlockMaxRightTilt);
+    currentBlockPos.y = -currentBlockLength + 1;
 
     startTime = SDL_GetTicks64();
 }
@@ -223,19 +229,20 @@ void Game::update()
             currentBlock = nextBlock;
             nextBlock = &blockTypes[rand() % BLOCK_TYPES_TOTAL];
             calcCurrentBlockMaxRightTilt();
+            calcCurrentBlockLength();
 
-            currentBlockPos = {0, 0};
+            currentBlockPos.x = rand() % (COLUMNS_QUANTITY - currentBlockMaxRightTilt);
+            currentBlockPos.y = -currentBlockLength + 1;
 
             std::vector<int> filledRows = getFilledRows();
 
             if (!filledRows.empty())
             {
-                std::cout << std::endl;
                 clearRows(filledRows);
                 // calcPoints(filledRows.size());
             }
         }
-        if (blockAutoMoved || keyPressed == ARROW_DOWN)
+        else if (blockAutoMoved || keyPressed == ARROW_DOWN)
         {
             currentBlockPos.y++;
         }
@@ -347,23 +354,30 @@ void Game::calcCurrentBlockMaxRightTilt()
     }
     currentBlockMaxRightTilt = maxTilt + 1;
 }
+void Game::calcCurrentBlockLength()
+{
+    int maxTilt = 0;
+    for (auto cell : currentBlock->cells)
+    {
+        maxTilt = std::max(maxTilt, cell.y);
+    }
+    currentBlockLength = maxTilt + 1;
+}
 void Game::clearRows(std::vector<int> rowsToClear)
 {
     for (auto rowIndex : rowsToClear)
     {
-        const int placedCellsLastIndex = placedCells.size() - 1;
-        for (int i = placedCellsLastIndex, columnsCleared = 0; columnsCleared < 10; i--)
+        for (int i = placedCells.size() - 1, columnsCleared = 0; columnsCleared < 10; i--)
         {
             if (placedCells[i].pos.y == rowIndex)
             {
-                std::cout << placedCells[i].pos.x << ' ' << placedCells[i].pos.y << ' ';
                 placedCells.erase(placedCells.begin() + i);
                 columnsCleared++;
             }
         }
-        for (auto placedCell : placedCells )
+        for (auto &placedCell : placedCells)
         {
-            if (placedCell.pos.y > rowIndex)
+            if (placedCell.pos.y < rowIndex)
             {
                 placedCell.pos.y++;
             }
