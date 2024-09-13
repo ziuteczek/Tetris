@@ -62,10 +62,10 @@ enum blockTypesNames
 class Game
 {
 private:
-    SDL_Window *gWindow = nullptr;
-    SDL_Renderer *gRenderer = nullptr;
+    SDL_Window *gWindow;
+    SDL_Renderer *gRenderer;
 
-    TTF_Font *gFont = nullptr;
+    TTF_Font *gFont;
 
     SDL_Event e;
 
@@ -76,14 +76,14 @@ private:
 
     Uint64 startTime;
     Uint64 currentFrameTime;
-    GTexture currentTimeTexture;
+    GTexture currentFrameTimeTexture;
 
     std::vector<cell> placedCells;
 
     std::array<block, BLOCK_TYPES_TOTAL> blockTypes;
 
-    block *currentBlock = nullptr;
-    block *nextBlock = nullptr;
+    block *currentBlock;
+    block *nextBlock;
 
     SDL_Rect gameViewPort;
     SDL_Rect generalViewPort;
@@ -96,23 +96,24 @@ private:
 
     void loadBlocks();
 
-    void calcCurrentBlockMaxRightTilt();
-    void calcCurrentBlockLength();
-    void placeCurrentBlock();
     bool isBlockPlaced();
+    void calcCurrentBlockWidth();
+    void calcCurrentBlockLength();
 
     bool checkBlockColisionLeft();
     bool checkBlockColisionRight();
 
     void drawCurrentBlock();
     void drawPlacedCells();
-    void renderNextBlock();
+    void drawNextBlock();
+    void drawCell(SDL_Point cords, SDL_Color color);
 
-    std::vector<int> getFilledRows();
+    void placeCurrentBlock();
     void clearRows(std::vector<int> rowsToClear);
+
     int calcPoints(int rowsCleared);
 
-    void drawCell(SDL_Point cords, SDL_Color color);
+    std::vector<int> getFilledRows();
 
 public:
     Game(SDL_Window *loadWindow, SDL_Renderer *loadRenderer, TTF_Font *loadFont);
@@ -123,7 +124,7 @@ public:
     void update();
     void render();
 };
-Game::Game(SDL_Window *loadWindow, SDL_Renderer *loadRenderer, TTF_Font *loadFont) : gWindow(loadWindow), gRenderer(loadRenderer), currentTimeTexture(gRenderer), gFont(loadFont)
+Game::Game(SDL_Window *loadWindow, SDL_Renderer *loadRenderer, TTF_Font *loadFont) : gWindow(loadWindow), gRenderer(loadRenderer), currentFrameTimeTexture(gRenderer), gFont(loadFont)
 {
     handleGameResize();
     loadBlocks();
@@ -133,7 +134,7 @@ Game::Game(SDL_Window *loadWindow, SDL_Renderer *loadRenderer, TTF_Font *loadFon
     currentBlock = &blockTypes[rand() % BLOCK_TYPES_TOTAL];
     nextBlock = &blockTypes[rand() % BLOCK_TYPES_TOTAL];
 
-    calcCurrentBlockMaxRightTilt();
+    calcCurrentBlockWidth();
     calcCurrentBlockLength();
 
     currentBlockPos.x = rand() % (COLUMNS_QUANTITY - currentBlockMaxRightTilt);
@@ -208,7 +209,7 @@ void Game::update()
     // Time handle
     Uint64 lastFrameTime = currentFrameTime;
     currentFrameTime = SDL_GetTicks64() - startTime;
-    currentTimeTexture.loadTextTexture(getCurrentTimeStr(), {0, 0, 0, SDL_ALPHA_OPAQUE}, gFont);
+    currentFrameTimeTexture.loadTextTexture(getCurrentTimeStr(), {0, 0, 0, SDL_ALPHA_OPAQUE}, gFont);
 
     // In milisecounds
     const int autoFallFrequency = 750;
@@ -228,7 +229,7 @@ void Game::update()
 
             currentBlock = nextBlock;
             nextBlock = &blockTypes[rand() % BLOCK_TYPES_TOTAL];
-            calcCurrentBlockMaxRightTilt();
+            calcCurrentBlockWidth();
             calcCurrentBlockLength();
 
             currentBlockPos.x = rand() % (COLUMNS_QUANTITY - currentBlockMaxRightTilt);
@@ -256,7 +257,7 @@ void Game::render()
     SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, SDL_ALPHA_OPAQUE);
     SDL_RenderDrawRect(gRenderer, &gameViewPort);
 
-    currentTimeTexture.render(0, 0, nullptr);
+    currentFrameTimeTexture.render(0, 0, nullptr);
 
     SDL_RenderSetViewport(gRenderer, &gameViewPort);
 
@@ -345,7 +346,7 @@ void Game::drawPlacedCells()
         drawCell(cellCords, placedCell.color);
     }
 }
-void Game::calcCurrentBlockMaxRightTilt()
+void Game::calcCurrentBlockWidth()
 {
     int maxTilt = 0;
     for (auto cell : currentBlock->cells)
