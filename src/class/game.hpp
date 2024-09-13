@@ -3,6 +3,7 @@
 #include <array>
 #include <vector>
 #include <cmath>
+#include <map>
 
 #include "./texture.hpp"
 
@@ -100,11 +101,14 @@ private:
 
     bool checkBlockColisionLeft();
     bool checkBlockColisionRight();
-    bool checkBlockColisions(/*checkColisionDirections directions*/);
 
     void drawCurrentBlock();
     void drawPlacedCells();
     void renderNextBlock();
+
+    std::vector<int> getFilledRows();
+    void clearRows(std::vector<int> rowsToClear);
+    int calcPoints(int rowsCleared);
 
     void drawCell(SDL_Point cords, SDL_Color color);
 
@@ -221,6 +225,15 @@ void Game::update()
             calcCurrentBlockMaxRightTilt();
 
             currentBlockPos = {0, 0};
+
+            std::vector<int> filledRows = getFilledRows();
+
+            if (!filledRows.empty())
+            {
+                std::cout << std::endl;
+                clearRows(filledRows);
+                // calcPoints(filledRows.size());
+            }
         }
         if (blockAutoMoved || keyPressed == ARROW_DOWN)
         {
@@ -333,6 +346,47 @@ void Game::calcCurrentBlockMaxRightTilt()
         maxTilt = std::max(maxTilt, cell.x);
     }
     currentBlockMaxRightTilt = maxTilt + 1;
+}
+void Game::clearRows(std::vector<int> rowsToClear)
+{
+    for (auto rowIndex : rowsToClear)
+    {
+        const int placedCellsLastIndex = placedCells.size() - 1;
+        for (int i = placedCellsLastIndex, columnsCleared = 0; columnsCleared < 10; i--)
+        {
+            if (placedCells[i].pos.y == rowIndex)
+            {
+                std::cout << placedCells[i].pos.x << ' ' << placedCells[i].pos.y << ' ';
+                placedCells.erase(placedCells.begin() + i);
+                columnsCleared++;
+            }
+        }
+        for (auto placedCell : placedCells )
+        {
+            if (placedCell.pos.y > rowIndex)
+            {
+                placedCell.pos.y++;
+            }
+        }
+    }
+}
+std::vector<int> Game::getFilledRows()
+{
+    std::map<int, int> rowsLength;
+
+    for (auto placedCell : placedCells)
+    {
+        rowsLength[placedCell.pos.y]++;
+    }
+    std::vector<int> filledRows;
+    for (auto [rowIndex, rowLength] : rowsLength)
+    {
+        if (rowLength == COLUMNS_QUANTITY)
+        {
+            filledRows.push_back(rowIndex);
+        }
+    }
+    return filledRows;
 }
 /*
 bool Game::checkBlockColisions(checkColisionDirections directions)

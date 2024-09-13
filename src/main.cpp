@@ -9,7 +9,7 @@
 
 bool init(SDL_Window **gWindow, SDL_Renderer **gRenderer);
 void load(TTF_Font **gFont);
-void close(SDL_Window *gWindow, SDL_Renderer *gRenderer);
+void close(SDL_Window *gWindow, SDL_Renderer *gRenderer,TTF_Font *gFont);
 
 int main(int argc, char **argv)
 {
@@ -32,7 +32,8 @@ int main(int argc, char **argv)
         tGame.render();
     }
 
-    close(gWindow, gRenderer);
+    close(gWindow, gRenderer,gFont);
+    return 0;
 }
 
 bool init(SDL_Window **gWindow, SDL_Renderer **gRenderer)
@@ -75,13 +76,14 @@ void load(TTF_Font **gFont)
         std::cerr << TTF_GetError() << std::endl;
     }
 }
-void close(SDL_Window *gWindow, SDL_Renderer *gRenderer)
+void close(SDL_Window *gWindow, SDL_Renderer *gRenderer, TTF_Font *gFont)
 {
     SDL_DestroyWindow(gWindow);
     SDL_DestroyRenderer(gRenderer);
 
     gWindow = nullptr;
     gRenderer = nullptr;
+    gFont = nullptr;
 
     TTF_Quit();
     SDL_Quit();
