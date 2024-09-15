@@ -6,6 +6,7 @@
 #include <map>
 
 #include "./texture.hpp"
+#include "./block.hpp"
 
 #define CELLS_IN_BLOCK 4
 
@@ -23,21 +24,6 @@ typedef struct cell
     SDL_Color color;
     SDL_Point pos;
 } cell;
-/*
-enum checkColisionDirections
-{
-    COLISION_DIRECTION_RIGHT = 0b1,
-    COLISION_DIRECTION_BOTTOM = 0b10,
-    COLISION_DIRECTION_LEFT = 0b100,
-};
-enum checkColisionDirectionsENUM
-{
-    COLISION_DIRECTION_RIGHT,
-    COLISION_DIRECTION_BOTTOM,
-    COLISION_DIRECTION_LEFT,
-    COLISION_DIRECTION_TOTAL
-};
-*/
 enum arrows
 {
     ARROW_NONE,
@@ -45,18 +31,6 @@ enum arrows
     ARROW_RIGHT,
     ARROW_DOWN,
     ARROW_LEFT
-};
-
-enum blockTypesNames
-{
-    BLOCK_TYPE_T,
-    BLOCK_TYPE_SQUARE,
-    BLOCK_TYPE_STICK,
-    BLOCK_TYPE_L,
-    BLOCK_TYPE_L_REVERSED,
-    BLOCK_TYPE_DOG,
-    BLOCK_TYPE_DOG_REVERSED,
-    BLOCK_TYPES_TOTAL
 };
 
 class Game
@@ -132,7 +106,7 @@ Game::Game(SDL_Window *loadWindow, SDL_Renderer *loadRenderer, TTF_Font *loadFon
     SDL_RenderGetViewport(gRenderer, &generalViewPort);
 
     currentBlock = &blockTypes[rand() % BLOCK_TYPES_TOTAL];
-    nextBlock = &blockTypes[rand() % BLOCK_TYPES_TOTAL];
+    nextBlock = &blockTypes[rand() % BLOCK_TYPES_TOTAL];rand() % BLOCK_TYPES_TOTAL;
 
     calcCurrentBlockWidth();
     calcCurrentBlockLength();
@@ -403,30 +377,6 @@ std::vector<int> Game::getFilledRows()
     }
     return filledRows;
 }
-/*
-bool Game::checkBlockColisions(checkColisionDirections directions)
-{
-    std::vector<checkColisionDirectionsENUM> directionsChosen;
-    for (int i = 0; i < COLISION_DIRECTION_TOTAL; i++)
-    {
-        if ((reinterpret_cast<bool *>(&directions)[i]))
-        {
-            directionsChosen.push_back(*reinterpret_cast<checkColisionDirectionsENUM *>(&i));
-        }
-    }
-    for (auto direction : directionsChosen)
-    {
-        switch (direction)
-        {
-        case COLISION_DIRECTION_BOTTOM:
-
-            break;
-        case COLISION_DIRECTION_LEFT:
-            break;
-        }
-    }
-}
-*/
 bool Game::checkBlockColisionRight()
 {
     if (currentBlockPos.x == COLUMNS_QUANTITY - currentBlockMaxRightTilt)
