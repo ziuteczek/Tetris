@@ -19,11 +19,7 @@ typedef struct block
     std::array<SDL_Point, CELLS_IN_BLOCK> cells;
 } block;
 
-typedef struct cell
-{
-    SDL_Color color;
-    SDL_Point pos;
-} cell;
+
 enum arrows
 {
     ARROW_NONE,

@@ -3,6 +3,11 @@
 #include <array>
 #include <cmath>
 
+#ifndef ROWS_QUANTITY || COLUMNS_QUANTITY
+#define ROWS_QUANTITY 20
+#define COLUMNS_QUANTITY 10
+#endif
+
 enum blockTypesNames
 {
     BLOCK_TYPE_T,
@@ -15,26 +20,73 @@ enum blockTypesNames
     BLOCK_TYPES_TOTAL
 };
 
+typedef struct cell
+{
+    SDL_Color color;
+    SDL_Point pos;
+} cell;
+
 class Block
 {
 private:
     blockTypesNames blockType;
 
-    std::array<SDL_Point, 4> cells;
+    std::array<cell, 4> cells;
     SDL_Color color;
 
+    int blockWidth;
+    int blockLength;
+
+    void setBlockType(blockTypesNames blockType);
+    void setBlockTypeRandom();
+
+    void calcBlockWidth();
+    void calcBlockLength();
+
+    void resetPos();
+
 public:
-    Block(blockTypesNames blockType);
-    Block() = default;
+    Block();
 
     SDL_Point pos;
 
     void rotate();
-    void setBlockType(blockTypesNames blockType);
-    void setBlockTypeRandom();
     void reset();
 };
+Block::Block()
+{
+    setBlockTypeRandom();
+}
+void Block::calcBlockLength()
+{
+    int maxTilt = 0;
+    for (auto cell : cells)
+    {
+        maxTilt = std::max(maxTilt, cell.pos.x);
+    }
+    blockWidth = maxTilt + 1;
+}
+void Block::calcBlockWidth()
+{
+    int maxTilt = 0;
+    for (auto cell : cells)
+    {
+        maxTilt = std::max(maxTilt, cell.pos.x);
+    }
+    blockWidth = maxTilt + 1;
+}
+void Block::reset()
+{
+    resetPos();
 
+    calcBlockWidth();
+    calcBlockLength();
+}
+void Block::resetPos()
+{
+    pos.y = -blockLength + 1;
+    pos.x = rand() % (COLUMNS_QUANTITY - blockWidth);
+}
 void Block::setBlockTypeRandom()
 {
     blockTypesNames blockTypeDrawn = static_cast<blockTypesNames>(rand() % BLOCK_TYPES_TOTAL);
