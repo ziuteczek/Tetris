@@ -19,7 +19,6 @@ typedef struct block
     std::array<SDL_Point, CELLS_IN_BLOCK> cells;
 } block;
 
-
 enum arrows
 {
     ARROW_NONE,
@@ -40,9 +39,6 @@ private:
     SDL_Event e;
 
     int cellW, cellH;
-    int currentBlockMaxRightTilt;
-    int currentBlockLength;
-    SDL_Point currentBlockPos;
 
     Uint64 startTime;
     Uint64 currentFrameTime;
@@ -50,10 +46,8 @@ private:
 
     std::vector<cell> placedCells;
 
-    std::array<block, BLOCK_TYPES_TOTAL> blockTypes;
-
-    block *currentBlock;
-    block *nextBlock;
+    TBlock currentBlock;
+    blockTypesNames nextBlock;
 
     SDL_Rect gameViewPort;
     SDL_Rect generalViewPort;
@@ -64,14 +58,7 @@ private:
 
     void handleGameResize();
 
-    void loadBlocks();
-
     bool isBlockPlaced();
-    void calcCurrentBlockWidth();
-    void calcCurrentBlockLength();
-
-    bool checkBlockColisionLeft();
-    bool checkBlockColisionRight();
 
     void drawCurrentBlock();
     void drawPlacedCells();
@@ -94,21 +81,16 @@ public:
     void update();
     void render();
 };
-Game::Game(SDL_Window *loadWindow, SDL_Renderer *loadRenderer, TTF_Font *loadFont) : gWindow(loadWindow), gRenderer(loadRenderer), currentFrameTimeTexture(gRenderer), gFont(loadFont)
+Game::Game(SDL_Window *loadWindow, SDL_Renderer *loadRenderer, TTF_Font *loadFont) : gWindow(loadWindow), gRenderer(loadRenderer), currentFrameTimeTexture(gRenderer), gFont(loadFont), currentBlock(placedCells)
 {
     handleGameResize();
-    loadBlocks();
 
     SDL_RenderGetViewport(gRenderer, &generalViewPort);
 
-    currentBlock = &blockTypes[rand() % BLOCK_TYPES_TOTAL];
-    nextBlock = &blockTypes[rand() % BLOCK_TYPES_TOTAL];rand() % BLOCK_TYPES_TOTAL;
+    currentBlock.setBlockType(static_cast<blockTypesNames>(rand() % BLOCK_TYPES_TOTAL));
+    nextBlock = static_cast<blockTypesNames>(rand() % BLOCK_TYPES_TOTAL);
 
-    calcCurrentBlockWidth();
-    calcCurrentBlockLength();
-
-    currentBlockPos.x = rand() % (COLUMNS_QUANTITY - currentBlockMaxRightTilt);
-    currentBlockPos.y = -currentBlockLength + 1;
+    currentBlock.reset();
 
     startTime = SDL_GetTicks64();
 }
@@ -158,16 +140,19 @@ void Game::update()
     case ARROW_NONE:
         break;
     case ARROW_LEFT:
-        if (!checkBlockColisionLeft())
+        if (!currentBlock.checkColisionLeft())
         {
-            currentBlockPos.x--;
+            currentBlock.pos.x--;
         }
         break;
     case ARROW_RIGHT:
-        if (!checkBlockColisionRight())
+        if (!currentBlock.checkColisionRight())
         {
-            currentBlockPos.x++;
+            currentBlock.pos.x++;
         }
+        break;
+    case ARROW_UP:
+        currentBlock.rotate();
         break;
     }
 
@@ -197,13 +182,10 @@ void Game::update()
         {
             placeCurrentBlock();
 
-            currentBlock = nextBlock;
-            nextBlock = &blockTypes[rand() % BLOCK_TYPES_TOTAL];
-            calcCurrentBlockWidth();
-            calcCurrentBlockLength();
+            currentBlock.setBlockType(nextBlock);
+            nextBlock = static_cast<blockTypesNames>(rand() % BLOCK_TYPES_TOTAL);
 
-            currentBlockPos.x = rand() % (COLUMNS_QUANTITY - currentBlockMaxRightTilt);
-            currentBlockPos.y = -currentBlockLength + 1;
+            currentBlock.reset();
 
             std::vector<int> filledRows = getFilledRows();
 
@@ -215,7 +197,7 @@ void Game::update()
         }
         else if (blockAutoMoved || keyPressed == ARROW_DOWN)
         {
-            currentBlockPos.y++;
+            currentBlock.pos.y++;
         }
     }
 }
@@ -255,9 +237,9 @@ void Game::drawCell(SDL_Point coords, SDL_Color color)
 }
 bool Game::isBlockPlaced()
 {
-    for (auto currentBlockCell : currentBlock->cells)
+    for (auto currentBlockCell : currentBlock.cells)
     {
-        int currentBlockCellY = currentBlockPos.y + currentBlockCell.y + 1;
+        int currentBlockCellY = currentBlock.pos.y + currentBlockCell.y + 1;
 
         if (currentBlockCellY == ROWS_QUANTITY)
         {
@@ -265,7 +247,7 @@ bool Game::isBlockPlaced()
         }
         for (auto placedCell : placedCells)
         {
-            if (currentBlockPos.x + currentBlockCell.x == placedCell.pos.x && currentBlockCellY == placedCell.pos.y)
+            if (currentBlock.pos.x + currentBlockCell.x == placedCell.pos.x && currentBlockCellY == placedCell.pos.y)
             {
                 return true;
             }
@@ -275,13 +257,13 @@ bool Game::isBlockPlaced()
 }
 void Game::placeCurrentBlock()
 {
-    for (auto currentBlockCell : currentBlock->cells)
+    for (auto currentBlockCell : currentBlock.cells)
     {
         cell cellToPlace;
 
-        cellToPlace.color = currentBlock->color;
-        cellToPlace.pos.x = currentBlockCell.x + currentBlockPos.x;
-        cellToPlace.pos.y = currentBlockCell.y + currentBlockPos.y;
+        cellToPlace.color = currentBlock.color;
+        cellToPlace.pos.x = currentBlockCell.x + currentBlock.pos.x;
+        cellToPlace.pos.y = currentBlockCell.y + currentBlock.pos.y;
 
         placedCells.push_back(cellToPlace);
     }
@@ -300,11 +282,11 @@ void Game::handleGameResize()
 }
 void Game::drawCurrentBlock()
 {
-    for (auto cell : currentBlock->cells)
+    for (auto cell : currentBlock.cells)
     {
-        SDL_Point cellDrawPoint = {cell.x + currentBlockPos.x, cell.y + currentBlockPos.y};
+        SDL_Point cellDrawPoint = {cell.x + currentBlock.pos.x, cell.y + currentBlock.pos.y};
 
-        drawCell(cellDrawPoint, currentBlock->color);
+        drawCell(cellDrawPoint, currentBlock.color);
     }
 }
 void Game::drawPlacedCells()
@@ -315,24 +297,6 @@ void Game::drawPlacedCells()
 
         drawCell(cellCords, placedCell.color);
     }
-}
-void Game::calcCurrentBlockWidth()
-{
-    int maxTilt = 0;
-    for (auto cell : currentBlock->cells)
-    {
-        maxTilt = std::max(maxTilt, cell.x);
-    }
-    currentBlockMaxRightTilt = maxTilt + 1;
-}
-void Game::calcCurrentBlockLength()
-{
-    int maxTilt = 0;
-    for (auto cell : currentBlock->cells)
-    {
-        maxTilt = std::max(maxTilt, cell.y);
-    }
-    currentBlockLength = maxTilt + 1;
 }
 void Game::clearRows(std::vector<int> rowsToClear)
 {
@@ -372,71 +336,6 @@ std::vector<int> Game::getFilledRows()
         }
     }
     return filledRows;
-}
-bool Game::checkBlockColisionRight()
-{
-    if (currentBlockPos.x == COLUMNS_QUANTITY - currentBlockMaxRightTilt)
-    {
-        return true;
-    }
-    for (auto placedCell : placedCells)
-    {
-        for (auto blockCell : currentBlock->cells)
-        {
-            bool cellsSameLevel = blockCell.y + currentBlockPos.y == placedCell.pos.y;
-            bool cellsSticking = blockCell.x + currentBlockPos.x + 1 == placedCell.pos.x;
-
-            if (cellsSameLevel && cellsSticking)
-            {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-bool Game::checkBlockColisionLeft()
-{
-    if (currentBlockPos.x == 0)
-    {
-        return true;
-    }
-    for (auto placedCell : placedCells)
-    {
-        for (auto blockCell : currentBlock->cells)
-        {
-            bool cellsSameLevel = blockCell.y + currentBlockPos.y == placedCell.pos.y;
-            bool cellsSticking = blockCell.x + currentBlockPos.x - 1 == placedCell.pos.x;
-
-            if (cellsSameLevel && cellsSticking)
-            {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-void Game::loadBlocks()
-{
-    blockTypes[BLOCK_TYPE_T].cells = {0, 1, 1, 1, 2, 1, 1, 0};
-    blockTypes[BLOCK_TYPE_T].color = {0x00, 0xFF, 0x00, SDL_ALPHA_OPAQUE};
-
-    blockTypes[BLOCK_TYPE_SQUARE].cells = {0, 0, 1, 0, 0, 1, 1, 1};
-    blockTypes[BLOCK_TYPE_SQUARE].color = {0xFF, 0x00, 0x00, SDL_ALPHA_OPAQUE};
-
-    blockTypes[BLOCK_TYPE_STICK].cells = {0, 0, 0, 1, 0, 2, 0, 3};
-    blockTypes[BLOCK_TYPE_STICK].color = {0x00, 0x00, 0xFF, SDL_ALPHA_OPAQUE};
-
-    blockTypes[BLOCK_TYPE_L].cells = {0, 0, 0, 1, 0, 2, 1, 2};
-    blockTypes[BLOCK_TYPE_L].color = {0x00, 0xFF, 0xFF, SDL_ALPHA_OPAQUE};
-
-    blockTypes[BLOCK_TYPE_L_REVERSED].cells = {1, 0, 1, 1, 1, 2, 0, 2};
-    blockTypes[BLOCK_TYPE_L_REVERSED].color = {0xFF, 0xFF, 0x00, SDL_ALPHA_OPAQUE};
-
-    blockTypes[BLOCK_TYPE_DOG].cells = {1, 0, 2, 0, 0, 1, 1, 1};
-    blockTypes[BLOCK_TYPE_DOG].color = {0xFF, 0xFF, 0x00, SDL_ALPHA_OPAQUE};
-
-    blockTypes[BLOCK_TYPE_DOG_REVERSED].cells = {0, 0, 1, 0, 1, 1, 2, 1};
-    blockTypes[BLOCK_TYPE_L_REVERSED].color = {0xFF, 0x00, 0xFF, SDL_ALPHA_OPAQUE};
 }
 std::string Game::getCurrentTimeStr()
 {

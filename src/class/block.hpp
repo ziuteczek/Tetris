@@ -3,7 +3,7 @@
 #include <array>
 #include <cmath>
 
-#ifndef ROWS_QUANTITY || COLUMNS_QUANTITY
+#ifndef ROWS_QUANTITY
 #define ROWS_QUANTITY 20
 #define COLUMNS_QUANTITY 10
 #endif
@@ -22,77 +22,104 @@ enum blockTypesNames
 
 typedef struct cell
 {
-    SDL_Color color;
     SDL_Point pos;
+    SDL_Color color;
 } cell;
 
-class Block
+class TBlock
 {
 private:
     blockTypesNames blockType;
 
-    std::array<cell, 4> cells;
-    SDL_Color color;
-
-    int blockWidth;
-    int blockLength;
-
-    void setBlockType(blockTypesNames blockType);
-    void setBlockTypeRandom();
+    int width;
+    int length;
 
     void calcBlockWidth();
     void calcBlockLength();
 
     void resetPos();
 
+    std::vector<cell> &placedCells;
+
 public:
-    Block();
+    TBlock(std::vector<cell> placedCells) : placedCells(placedCells) {}
 
     SDL_Point pos;
+    SDL_Color color;
 
     void rotate();
     void reset();
-};
-Block::Block()
-{
-    setBlockTypeRandom();
-}
-void Block::calcBlockLength()
-{
-    int maxTilt = 0;
-    for (auto cell : cells)
-    {
-        maxTilt = std::max(maxTilt, cell.pos.x);
-    }
-    blockWidth = maxTilt + 1;
-}
-void Block::calcBlockWidth()
-{
-    int maxTilt = 0;
-    for (auto cell : cells)
-    {
-        maxTilt = std::max(maxTilt, cell.pos.x);
-    }
-    blockWidth = maxTilt + 1;
-}
-void Block::reset()
-{
-    resetPos();
 
+    void setBlockType(blockTypesNames blockType);
+
+    int getWidth();
+    int getLength();
+
+    bool checkColisionRight(std::array<SDL_Point, 4> *block /*= nullptr*/);
+    bool checkColisionLeft(std::array<SDL_Point, 4> *block /*= nullptr*/);
+
+    std::array<SDL_Point, 4> cells;
+};
+void TBlock::rotate()
+{
+    std::swap(this->width, this->length);
+
+    std::array<SDL_Point, 4> rotateCopy = cells;
+
+    for (auto &blockCell : rotateCopy)
+    {
+        int blockCellYold = blockCell.x;
+        blockCell.x = blockCell.y;
+        blockCell.y = this->width - 1 - blockCellYold;
+    }
+
+    if (!checkColisionRight(nullptr) && !checkColisionLeft(nullptr))
+    {
+        cells = rotateCopy;
+    }
+
+    calcBlockLength();
+    calcBlockWidth();
+}
+void TBlock::calcBlockLength()
+{
+    int maxTilt = 0;
+    for (auto cell : cells)
+    {
+        maxTilt = std::max(maxTilt, cell.x);
+    }
+    length = maxTilt + 1;
+}
+void TBlock::calcBlockWidth()
+{
+    int maxTilt = 0;
+    for (auto cell : cells)
+    {
+        maxTilt = std::max(maxTilt, cell.x);
+    }
+    width = maxTilt + 1;
+}
+void TBlock::reset()
+{
     calcBlockWidth();
     calcBlockLength();
+
+    resetPos();
 }
-void Block::resetPos()
+void TBlock::resetPos()
 {
-    pos.y = -blockLength + 1;
-    pos.x = rand() % (COLUMNS_QUANTITY - blockWidth);
+    pos.y = -this->length + 1;
+    pos.x = rand() % (COLUMNS_QUANTITY - this->width);
 }
-void Block::setBlockTypeRandom()
+int TBlock::getWidth()
 {
-    blockTypesNames blockTypeDrawn = static_cast<blockTypesNames>(rand() % BLOCK_TYPES_TOTAL);
-    setBlockType(blockTypeDrawn);
+    return width;
 }
-void Block::setBlockType(blockTypesNames blockType)
+int TBlock::getLength()
+{
+    return length;
+}
+void TBlock::setBlockType(blockTypesNames blockType)
 {
     this->blockType = blockType;
 
@@ -127,4 +154,50 @@ void Block::setBlockType(blockTypesNames blockType)
         color = {0xFF, 0x00, 0xFF, SDL_ALPHA_OPAQUE};
         break;
     }
+}
+bool TBlock::checkColisionLeft(std::array<SDL_Point, 4> *block = nullptr)
+{
+    std::array<SDL_Point, 4> cellsToCheck = (block == nullptr) ? cells : *block;
+
+    if (pos.x == 0)
+    {
+        return true;
+    }
+    for (auto placedCell : placedCells)
+    {
+        for (auto blockCell : cells)
+        {
+            bool cellsSameLevel = blockCell.y + pos.y == placedCell.pos.y;
+            bool cellsSticking = blockCell.x + pos.x - 1 == placedCell.pos.x;
+
+            if (cellsSameLevel && cellsSticking)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+bool TBlock::checkColisionRight(std::array<SDL_Point, 4> *block = nullptr)
+{
+    std::array<SDL_Point, 4> cellsToCheck = (block == nullptr) ? cells : *block;
+
+    if (pos.x == COLUMNS_QUANTITY - width)
+    {
+        return true;
+    }
+    for (auto placedCell : placedCells)
+    {
+        for (auto blockCell : cells)
+        {
+            bool cellsSameLevel = blockCell.y + pos.y == placedCell.pos.y;
+            bool cellsSticking = blockCell.x + pos.x + 1 == placedCell.pos.x;
+
+            if (cellsSameLevel && cellsSticking)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
 }
