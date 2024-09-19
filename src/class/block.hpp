@@ -137,6 +137,10 @@ void TBlock::setBlockType(blockTypesNames blockType)
         cells = {0, 0, 0, 1, 0, 2, 0, 3};
         color = {0x00, 0x00, 0xFF, SDL_ALPHA_OPAQUE};
         break;
+    case BLOCK_TYPE_L:
+        cells = {1, 0, 1, 1, 1, 2, 2, 0};
+        color = {142, 198, 65, SDL_ALPHA_OPAQUE};
+        break;
     case BLOCK_TYPE_L_REVERSED:
         cells = {0, 0, 0, 1, 0, 2, 1, 2};
         color = {0x00, 0xFF, 0xFF, SDL_ALPHA_OPAQUE};
@@ -148,10 +152,6 @@ void TBlock::setBlockType(blockTypesNames blockType)
     case BLOCK_TYPE_DOG_REVERSED:
         cells = {1, 0, 2, 0, 0, 1, 1, 1};
         color = {0xFF, 0xFF, 0x00, SDL_ALPHA_OPAQUE};
-        break;
-    case BLOCK_TYPES_TOTAL:
-        cells = {0, 0, 1, 0, 1, 1, 2, 1};
-        color = {0xFF, 0x00, 0xFF, SDL_ALPHA_OPAQUE};
         break;
     }
 }

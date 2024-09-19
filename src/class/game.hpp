@@ -42,6 +42,7 @@ private:
 
     Uint64 startTime;
     Uint64 currentFrameTime;
+    Uint64 lastArrowDownClick = 0;
     GTexture currentFrameTimeTexture;
 
     std::vector<cell> placedCells;
@@ -122,6 +123,14 @@ void Game::handleEvents()
                 break;
             case SDLK_DOWN:
                 keyPressed = ARROW_DOWN;
+                if (SDL_GetTicks64() - lastArrowDownClick < 500)
+                {
+                    lastArrowDownClick = 0;
+                }
+                else
+                {
+                    lastArrowDownClick = SDL_GetTicks64();
+                }
                 break;
             case SDLK_LEFT:
                 keyPressed = ARROW_LEFT;
@@ -227,13 +236,15 @@ void Game::drawCell(SDL_Point coords, SDL_Color color)
 
     SDL_Rect cellRect;
 
-    cellRect.x = cellW * coords.x;
-    cellRect.y = cellH * coords.y;
+    cellRect.x = cellW * coords.x + 1;
+    cellRect.y = cellH * coords.y + 1;
 
-    cellRect.w = cellW;
-    cellRect.h = cellH;
+    cellRect.w = cellW - 2;
+    cellRect.h = cellH - 2;
 
     SDL_RenderFillRect(gRenderer, &cellRect);
+    SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, SDL_ALPHA_TRANSPARENT);
+    // SDL_RenderDrawRect(gRenderer, &cellRect);
 }
 bool Game::isBlockPlaced()
 {
