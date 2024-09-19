@@ -42,7 +42,7 @@ private:
     std::vector<cell> &placedCells;
 
 public:
-    TBlock(std::vector<cell> placedCells) : placedCells(placedCells) {}
+    TBlock(std::vector<cell> &placedCells) : placedCells(placedCells) {}
 
     SDL_Point pos;
     SDL_Color color;
@@ -163,9 +163,10 @@ bool TBlock::checkColisionLeft(std::array<SDL_Point, 4> *block = nullptr)
     {
         return true;
     }
+
     for (auto placedCell : placedCells)
     {
-        for (auto blockCell : cells)
+        for (auto blockCell : cellsToCheck)
         {
             bool cellsSameLevel = blockCell.y + pos.y == placedCell.pos.y;
             bool cellsSticking = blockCell.x + pos.x - 1 == placedCell.pos.x;
