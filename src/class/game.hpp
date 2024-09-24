@@ -13,6 +13,8 @@
 #define ROWS_QUANTITY 20
 #define COLUMNS_QUANTITY 10
 
+#define DOUBLE_CLICK_DELAY 500
+
 typedef struct block
 {
     SDL_Color color;
@@ -42,8 +44,10 @@ private:
 
     Uint64 startTime;
     Uint64 currentFrameTime;
-    Uint64 lastArrowDownClick = 0;
     GTexture currentFrameTimeTexture;
+
+    int points = 0;
+    GTexture pointsTexture;
 
     std::vector<cell> placedCells;
 
@@ -70,6 +74,7 @@ private:
     void clearRows(std::vector<int> rowsToClear);
 
     int calcPoints(int rowsCleared);
+    void addPoints(int points);
 
     std::vector<int> getFilledRows();
 
@@ -82,7 +87,7 @@ public:
     void update();
     void render();
 };
-Game::Game(SDL_Window *loadWindow, SDL_Renderer *loadRenderer, TTF_Font *loadFont) : gWindow(loadWindow), gRenderer(loadRenderer), currentFrameTimeTexture(gRenderer), gFont(loadFont), currentBlock(placedCells)
+Game::Game(SDL_Window *loadWindow, SDL_Renderer *loadRenderer, TTF_Font *loadFont) : gWindow(loadWindow), gRenderer(loadRenderer), currentFrameTimeTexture(gRenderer), gFont(loadFont), currentBlock(placedCells), pointsTexture(gRenderer)
 {
     handleGameResize();
 
@@ -93,10 +98,14 @@ Game::Game(SDL_Window *loadWindow, SDL_Renderer *loadRenderer, TTF_Font *loadFon
 
     currentBlock.reset();
 
+    addPoints(0);
+
     startTime = SDL_GetTicks64();
 }
 void Game::handleEvents()
 {
+    static Uint64 lastArrowDownClick = 0;
+
     keyPressed = ARROW_NONE;
 
     while (SDL_PollEvent(&e))
@@ -201,7 +210,9 @@ void Game::update()
             if (!filledRows.empty())
             {
                 clearRows(filledRows);
-                // calcPoints(filledRows.size());
+
+                int pointsGained = calcPoints(filledRows.size());
+                addPoints(pointsGained);
             }
         }
         else if (blockAutoMoved || keyPressed == ARROW_DOWN)
@@ -218,7 +229,14 @@ void Game::render()
     SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, SDL_ALPHA_OPAQUE);
     SDL_RenderDrawRect(gRenderer, &gameViewPort);
 
-    currentFrameTimeTexture.render(0, 0, nullptr);
+    int currentTimeTextureX = (gameViewPort.x + gameViewPort.w);
+    +(generalViewPort.w - (gameViewPort.x + gameViewPort.w) - currentFrameTimeTexture.getWidth()) * (1.0 / 3.0);
+    int currentTimeTextureY = gameViewPort.y;
+    currentFrameTimeTexture.render(currentTimeTextureX, currentTimeTextureY, nullptr);
+
+    int pointsTextureX = (gameViewPort.x + gameViewPort.w) + (generalViewPort.w - (gameViewPort.x + gameViewPort.w) - currentFrameTimeTexture.getWidth()) * (2.0 / 3.0);
+    int pointsTextureY = gameViewPort.y;
+    pointsTexture.render(pointsTextureX, pointsTextureY, nullptr);
 
     SDL_RenderSetViewport(gRenderer, &gameViewPort);
 
@@ -347,6 +365,37 @@ std::vector<int> Game::getFilledRows()
         }
     }
     return filledRows;
+}
+int Game::calcPoints(int rowsCleared)
+{
+    int pointsScored;
+    switch (rowsCleared)
+    {
+    case 1:
+        pointsScored = 40;
+        break;
+    case 2:
+        pointsScored = 100;
+        break;
+    case 3:
+        pointsScored = 300;
+        break;
+    case 4:
+        pointsScored = 1200;
+        break;
+    default:
+        pointsScored = 0;
+        break;
+    }
+    return pointsScored;
+}
+void Game::addPoints(int pointsToAdd)
+{
+    points += pointsToAdd;
+
+    // Update points texture
+    SDL_Color pointsTextureColor = {0, 0, 0, SDL_ALPHA_OPAQUE};
+    pointsTexture.loadTextTexture(std::to_string(points), pointsTextureColor, gFont);
 }
 std::string Game::getCurrentTimeStr()
 {
