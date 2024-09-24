@@ -210,7 +210,7 @@ void Game::update()
             std::vector<int> filledRows = getFilledRows();
 
             exit = isLost();
-            
+
             if (!filledRows.empty())
             {
                 clearRows(filledRows);
@@ -233,12 +233,11 @@ void Game::render()
     SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, SDL_ALPHA_OPAQUE);
     SDL_RenderDrawRect(gRenderer, &gameViewPort);
 
-    int currentTimeTextureX = (gameViewPort.x + gameViewPort.w);
-    +(generalViewPort.w - (gameViewPort.x + gameViewPort.w) - currentFrameTimeTexture.getWidth()) * (1.0 / 3.0);
-    int currentTimeTextureY = gameViewPort.y;
+    int currentTimeTextureX = (gameViewPort.x + gameViewPort.w) + (generalViewPort.w - (gameViewPort.x + gameViewPort.w)) * (2.0 / 3.0) - currentFrameTimeTexture.getHeight();
+    int currentTimeTextureY = generalViewPort.y;
     currentFrameTimeTexture.render(currentTimeTextureX, currentTimeTextureY, nullptr);
 
-    int pointsTextureX = (gameViewPort.x + gameViewPort.w) + (generalViewPort.w - (gameViewPort.x + gameViewPort.w) - currentFrameTimeTexture.getWidth()) * (2.0 / 3.0);
+    int pointsTextureX = (gameViewPort.x + gameViewPort.w) + (generalViewPort.w - (gameViewPort.x + gameViewPort.w)) * (1.0 / 3.0) - pointsTexture.getWidth();
     int pointsTextureY = gameViewPort.y;
     pointsTexture.render(pointsTextureX, pointsTextureY, nullptr);
 
@@ -246,7 +245,7 @@ void Game::render()
 
     drawCurrentBlock();
     drawPlacedCells();
-    // renderNextBlock();
+    drawNextBlock();
 
     SDL_RenderSetViewport(gRenderer, &generalViewPort);
 
@@ -330,6 +329,14 @@ void Game::drawPlacedCells()
 
         drawCell(cellCords, placedCell.color);
     }
+}
+void Game::drawNextBlock()
+{
+    //TO RENAME
+    int gameMargin = gameViewPort.w + gameViewPort.x;
+    int infoWidth =  generalViewPort.w - gameMargin;
+
+    int infoCenter = (infoWidth /*- block width*/) / 2;
 }
 void Game::clearRows(std::vector<int> rowsToClear)
 {

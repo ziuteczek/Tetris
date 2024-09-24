@@ -69,7 +69,7 @@ bool init(SDL_Window **gWindow, SDL_Renderer **gRenderer)
 }
 void load(TTF_Font **gFont)
 {
-    *gFont = TTF_OpenFont("./bin/fonts/PixelifySans-Regular.ttf", 32);
+    *gFont = TTF_OpenFont("./bin/fonts/PixelifySans-Regular.ttf", 50);
 
     if (*gFont == nullptr)
     {
