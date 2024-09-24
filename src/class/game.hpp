@@ -64,6 +64,7 @@ private:
     void handleGameResize();
 
     bool isBlockPlaced();
+    bool isLost();
 
     void drawCurrentBlock();
     void drawPlacedCells();
@@ -87,7 +88,8 @@ public:
     void update();
     void render();
 };
-Game::Game(SDL_Window *loadWindow, SDL_Renderer *loadRenderer, TTF_Font *loadFont) : gWindow(loadWindow), gRenderer(loadRenderer), currentFrameTimeTexture(gRenderer), gFont(loadFont), currentBlock(placedCells), pointsTexture(gRenderer)
+Game::Game(SDL_Window *loadWindow, SDL_Renderer *loadRenderer, TTF_Font *loadFont) : gWindow(loadWindow),
+                                                                                     gRenderer(loadRenderer), currentFrameTimeTexture(gRenderer), gFont(loadFont), currentBlock(placedCells), pointsTexture(gRenderer)
 {
     handleGameResize();
 
@@ -207,6 +209,8 @@ void Game::update()
 
             std::vector<int> filledRows = getFilledRows();
 
+            exit = isLost();
+            
             if (!filledRows.empty())
             {
                 clearRows(filledRows);
@@ -396,6 +400,19 @@ void Game::addPoints(int pointsToAdd)
     // Update points texture
     SDL_Color pointsTextureColor = {0, 0, 0, SDL_ALPHA_OPAQUE};
     pointsTexture.loadTextTexture(std::to_string(points), pointsTextureColor, gFont);
+}
+bool Game::isLost()
+{
+    bool isGameLost = false;
+    for (auto placedCell : placedCells)
+    {
+        if (placedCell.pos.y <= 0)
+        {
+            isGameLost = true;
+            break;
+        }
+    }
+    return isGameLost;
 }
 std::string Game::getCurrentTimeStr()
 {
