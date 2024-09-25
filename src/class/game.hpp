@@ -356,7 +356,7 @@ void Game::drawNextBlock()
         nextBlockWidth = 0;
         for (auto nextBlockCell : nextBlockCells)
         {
-            nextBlockWidth = std::max(nextBlockCell.x,nextBlockWidth);
+            nextBlockWidth = std::max(nextBlockCell.x, nextBlockWidth);
         }
         nextBlockWidth++;
     }
@@ -369,14 +369,14 @@ void Game::drawNextBlock()
         int infoWidth = generalViewPort.w - gameMargin;
 
         int nextBlockY = generalViewPort.h / 2;
-        
-        //TO RENAME
+
+        // TO RENAME
         int infoCenter = (infoWidth - nextBlockWidth * nextBlockCellSize) / 2;
 
         SDL_Rect nextBlockRenderRect;
 
         nextBlockRenderRect.x = gameMargin + infoCenter + nextBlockCellSize * nextBlockCell.x + 1;
-        nextBlockRenderRect.y = nextBlockY +  nextBlockCellSize * nextBlockCell.y + 1;
+        nextBlockRenderRect.y = nextBlockY + nextBlockCellSize * nextBlockCell.y + 1;
         nextBlockRenderRect.w = nextBlockCellSize - 2;
         nextBlockRenderRect.h = nextBlockCellSize - 2;
 
@@ -502,7 +502,7 @@ std::array<SDL_Point, 4> Game::getBlockTypeCells(blockTypesNames blockType)
     switch (blockType)
     {
     case BLOCK_TYPE_T:
-        cells = {0, 1, 1, 1, 2, 1, 1, 0};
+        cells = {1, 0, 0, 1, 1, 1, 2, 1};
         break;
     case BLOCK_TYPE_SQUARE:
         cells = {0, 0, 1, 0, 0, 1, 1, 1};
@@ -511,16 +511,16 @@ std::array<SDL_Point, 4> Game::getBlockTypeCells(blockTypesNames blockType)
         cells = {0, 0, 0, 1, 0, 2, 0, 3};
         break;
     case BLOCK_TYPE_L:
-        cells = {1, 0, 1, 1, 1, 2, 2, 0};
-        break;
-    case BLOCK_TYPE_L_REVERSED:
         cells = {0, 0, 0, 1, 0, 2, 1, 2};
         break;
-    case BLOCK_TYPE_DOG:
+    case BLOCK_TYPE_L_REVERSED:
         cells = {1, 0, 1, 1, 1, 2, 0, 2};
         break;
-    case BLOCK_TYPE_DOG_REVERSED:
+    case BLOCK_TYPE_DOG:
         cells = {1, 0, 2, 0, 0, 1, 1, 1};
+        break;
+    case BLOCK_TYPE_DOG_REVERSED:
+        cells = {0, 0, 1, 0, 1, 1, 2, 1};
         break;
     }
     return cells;
