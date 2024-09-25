@@ -83,7 +83,7 @@ void TBlock::calcBlockLength()
     int maxTilt = 0;
     for (auto cell : cells)
     {
-        maxTilt = std::max(maxTilt, cell.x);
+        maxTilt = std::max(maxTilt, cell.y);
     }
     length = maxTilt + 1;
 }
@@ -105,7 +105,7 @@ void TBlock::reset()
 }
 void TBlock::resetPos()
 {
-    pos.y = -this->length + 1;
+    pos.y = -(this->length);
     pos.x = rand() % (COLUMNS_QUANTITY - this->width);
 }
 int TBlock::getWidth()
