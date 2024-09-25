@@ -74,6 +74,9 @@ private:
     void placeCurrentBlock();
     void clearRows(std::vector<int> rowsToClear);
 
+    SDL_Color getBlockTypeColor(blockTypesNames blockType);
+    std::array<SDL_Point, 4> getBlockTypeCells(blockTypesNames blockType);
+
     int calcPoints(int rowsCleared);
     void addPoints(int points);
 
@@ -95,7 +98,10 @@ Game::Game(SDL_Window *loadWindow, SDL_Renderer *loadRenderer, TTF_Font *loadFon
 
     SDL_RenderGetViewport(gRenderer, &generalViewPort);
 
-    currentBlock.setBlockType(static_cast<blockTypesNames>(rand() % BLOCK_TYPES_TOTAL));
+    currentBlock.type = static_cast<blockTypesNames>(rand() % BLOCK_TYPES_TOTAL);
+    currentBlock.cells = getBlockTypeCells(currentBlock.type);
+    currentBlock.color = getBlockTypeColor(currentBlock.type);
+
     nextBlock = static_cast<blockTypesNames>(rand() % BLOCK_TYPES_TOTAL);
 
     currentBlock.reset();
@@ -202,7 +208,9 @@ void Game::update()
         {
             placeCurrentBlock();
 
-            currentBlock.setBlockType(nextBlock);
+            currentBlock.cells = getBlockTypeCells(nextBlock);
+            currentBlock.color = getBlockTypeColor(nextBlock);
+
             nextBlock = static_cast<blockTypesNames>(rand() % BLOCK_TYPES_TOTAL);
 
             currentBlock.reset();
@@ -245,9 +253,10 @@ void Game::render()
 
     drawCurrentBlock();
     drawPlacedCells();
-    drawNextBlock();
 
     SDL_RenderSetViewport(gRenderer, &generalViewPort);
+
+    drawNextBlock();
 
     SDL_RenderPresent(gRenderer);
 }
@@ -332,11 +341,48 @@ void Game::drawPlacedCells()
 }
 void Game::drawNextBlock()
 {
-    //TO RENAME
-    int gameMargin = gameViewPort.w + gameViewPort.x;
-    int infoWidth =  generalViewPort.w - gameMargin;
 
-    int infoCenter = (infoWidth /*- block width*/) / 2;
+    static blockTypesNames lastNextBlockType;
+    static std::array<SDL_Point, 4> nextBlockCells;
+    static SDL_Color nextBlockColor;
+    static int nextBlockWidth;
+
+    if (lastNextBlockType != nextBlock)
+    {
+        lastNextBlockType = nextBlock;
+        nextBlockCells = getBlockTypeCells(nextBlock);
+        nextBlockColor = getBlockTypeColor(nextBlock);
+
+        nextBlockWidth = 0;
+        for (auto nextBlockCell : nextBlockCells)
+        {
+            nextBlockWidth = std::max(nextBlockCell.x,nextBlockWidth);
+        }
+        nextBlockWidth++;
+    }
+
+    for (auto nextBlockCell : nextBlockCells)
+    {
+        int nextBlockCellSize = 50;
+        // TO RENAME
+        int gameMargin = gameViewPort.w + gameViewPort.x;
+        int infoWidth = generalViewPort.w - gameMargin;
+
+        int nextBlockY = generalViewPort.h / 2;
+        
+        //TO RENAME
+        int infoCenter = (infoWidth - nextBlockWidth * nextBlockCellSize) / 2;
+
+        SDL_Rect nextBlockRenderRect;
+
+        nextBlockRenderRect.x = gameMargin + infoCenter + nextBlockCellSize * nextBlockCell.x + 1;
+        nextBlockRenderRect.y = nextBlockY +  nextBlockCellSize * nextBlockCell.y + 1;
+        nextBlockRenderRect.w = nextBlockCellSize - 2;
+        nextBlockRenderRect.h = nextBlockCellSize - 2;
+
+        SDL_SetRenderDrawColor(gRenderer, nextBlockColor.r, nextBlockColor.g, nextBlockColor.b, nextBlockColor.a);
+        SDL_RenderFillRect(gRenderer, &nextBlockRenderRect);
+    }
 }
 void Game::clearRows(std::vector<int> rowsToClear)
 {
@@ -420,6 +466,64 @@ bool Game::isLost()
         }
     }
     return isGameLost;
+}
+SDL_Color Game::getBlockTypeColor(blockTypesNames blockType)
+{
+    SDL_Color color;
+    switch (blockType)
+    {
+    case BLOCK_TYPE_T:
+        color = {0x00, 0xFF, 0x00, SDL_ALPHA_OPAQUE};
+        break;
+    case BLOCK_TYPE_SQUARE:
+        color = {0xFF, 0x00, 0x00, SDL_ALPHA_OPAQUE};
+        break;
+    case BLOCK_TYPE_STICK:
+        color = {0x00, 0x00, 0xFF, SDL_ALPHA_OPAQUE};
+        break;
+    case BLOCK_TYPE_L:
+        color = {142, 198, 65, SDL_ALPHA_OPAQUE};
+        break;
+    case BLOCK_TYPE_L_REVERSED:
+        color = {0x00, 0xFF, 0xFF, SDL_ALPHA_OPAQUE};
+        break;
+    case BLOCK_TYPE_DOG:
+        color = {0xFF, 0xFF, 0x00, SDL_ALPHA_OPAQUE};
+        break;
+    case BLOCK_TYPE_DOG_REVERSED:
+        color = {0xFF, 0xFF, 0x00, SDL_ALPHA_OPAQUE};
+        break;
+    }
+    return color;
+}
+std::array<SDL_Point, 4> Game::getBlockTypeCells(blockTypesNames blockType)
+{
+    std::array<SDL_Point, 4> cells;
+    switch (blockType)
+    {
+    case BLOCK_TYPE_T:
+        cells = {0, 1, 1, 1, 2, 1, 1, 0};
+        break;
+    case BLOCK_TYPE_SQUARE:
+        cells = {0, 0, 1, 0, 0, 1, 1, 1};
+        break;
+    case BLOCK_TYPE_STICK:
+        cells = {0, 0, 0, 1, 0, 2, 0, 3};
+        break;
+    case BLOCK_TYPE_L:
+        cells = {1, 0, 1, 1, 1, 2, 2, 0};
+        break;
+    case BLOCK_TYPE_L_REVERSED:
+        cells = {0, 0, 0, 1, 0, 2, 1, 2};
+        break;
+    case BLOCK_TYPE_DOG:
+        cells = {1, 0, 1, 1, 1, 2, 0, 2};
+        break;
+    case BLOCK_TYPE_DOG_REVERSED:
+        cells = {1, 0, 2, 0, 0, 1, 1, 1};
+        break;
+    }
+    return cells;
 }
 std::string Game::getCurrentTimeStr()
 {
