@@ -1,5 +1,4 @@
 #include <SDL2/SDL.h>
-
 #include <array>
 #include <cmath>
 
@@ -34,13 +33,14 @@ private:
 
     void calcBlockWidth();
     void calcBlockLength();
-
     void resetPos();
-    std::vector<cell> &placedCells;
+
+    std::vector<cell> &placedCells;  // Fixed error: Reference to the placedCells vector
 
 public:
     blockTypesNames type;
 
+    // Constructor: Initialize the reference to placedCells using an initializer list
     TBlock(std::vector<cell> &placedCells) : placedCells(placedCells) {}
 
     SDL_Point pos;
@@ -54,9 +54,11 @@ public:
     int getWidth();
     int getLength();
 
-    bool checkColisionRight(std::array<SDL_Point, 4> *block /*= nullptr*/);
-    bool checkColisionLeft(std::array<SDL_Point, 4> *block /*= nullptr*/);
+    bool checkColisionRight(std::array<SDL_Point, 4> *block = nullptr);
+    bool checkColisionLeft(std::array<SDL_Point, 4> *block = nullptr);
+    bool isPlaced();
 };
+
 void TBlock::rotate()
 {
     std::swap(this->width, this->length);
@@ -78,6 +80,7 @@ void TBlock::rotate()
     calcBlockLength();
     calcBlockWidth();
 }
+
 void TBlock::calcBlockLength()
 {
     int maxTilt = 0;
@@ -87,6 +90,7 @@ void TBlock::calcBlockLength()
     }
     length = maxTilt + 1;
 }
+
 void TBlock::calcBlockWidth()
 {
     int maxTilt = 0;
@@ -96,6 +100,7 @@ void TBlock::calcBlockWidth()
     }
     width = maxTilt + 1;
 }
+
 void TBlock::reset()
 {
     calcBlockWidth();
@@ -103,11 +108,13 @@ void TBlock::reset()
 
     resetPos();
 }
+
 void TBlock::resetPos()
 {
     pos.y = -(this->length);
     pos.x = rand() % (COLUMNS_QUANTITY - this->width);
 }
+
 int TBlock::getWidth()
 {
     return width;
@@ -117,7 +124,8 @@ int TBlock::getLength()
 {
     return length;
 }
-bool TBlock::checkColisionLeft(std::array<SDL_Point, 4> *block = nullptr)
+
+bool TBlock::checkColisionLeft(std::array<SDL_Point, 4> *block /*= nullptr*/)
 {
     std::array<SDL_Point, 4> cellsToCheck = (block == nullptr) ? cells : *block;
 
@@ -141,7 +149,29 @@ bool TBlock::checkColisionLeft(std::array<SDL_Point, 4> *block = nullptr)
     }
     return false;
 }
-bool TBlock::checkColisionRight(std::array<SDL_Point, 4> *block = nullptr)
+
+bool TBlock::isPlaced()
+{
+    for (auto currentBlockCell : cells)
+    {
+        int currentBlockCellY = pos.y + currentBlockCell.y + 1;
+
+        if (currentBlockCellY == ROWS_QUANTITY)
+        {
+            return true;
+        }
+        for (auto placedCell : placedCells)
+        {
+            if (pos.x + currentBlockCell.x == placedCell.pos.x && currentBlockCellY == placedCell.pos.y)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool TBlock::checkColisionRight(std::array<SDL_Point, 4> *block /*= nullptr*/)
 {
     std::array<SDL_Point, 4> cellsToCheck = (block == nullptr) ? cells : *block;
 

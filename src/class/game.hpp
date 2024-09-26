@@ -7,6 +7,7 @@
 
 #include "./texture.hpp"
 #include "./block.hpp"
+#include "./placedCells.hpp"
 
 #define CELLS_IN_BLOCK 4
 
@@ -42,6 +43,8 @@ private:
 
     int cellW, cellH;
 
+    std::vector<cell> pCells;
+
     Uint64 startTime;
     Uint64 currentFrameTime;
     GTexture currentFrameTimeTexture;
@@ -49,10 +52,10 @@ private:
     int points = 0;
     GTexture pointsTexture;
 
-    std::vector<cell> placedCells;
-
     TBlock currentBlock;
     blockTypesNames nextBlock;
+
+    PlacedCells placedCells;
 
     SDL_Rect gameViewPort;
     SDL_Rect generalViewPort;
@@ -63,24 +66,16 @@ private:
 
     void handleGameResize();
 
-    bool isBlockPlaced();
-    bool isLost();
-
     void drawCurrentBlock();
     void drawPlacedCells();
     void drawNextBlock();
     void drawCell(SDL_Point cords, SDL_Color color);
 
-    void placeCurrentBlock();
-    void clearRows(std::vector<int> rowsToClear);
-
     SDL_Color getBlockTypeColor(blockTypesNames blockType);
-    std::array<SDL_Point, 4> getBlockTypeCells(blockTypesNames blockType);
+    std::array<SDL_Point, CELLS_IN_BLOCK> getBlockTypeCells(blockTypesNames blockType);
 
     int calcPoints(int rowsCleared);
     void addPoints(int points);
-
-    std::vector<int> getFilledRows();
 
 public:
     Game(SDL_Window *loadWindow, SDL_Renderer *loadRenderer, TTF_Font *loadFont);
@@ -91,11 +86,17 @@ public:
     void update();
     void render();
 };
-Game::Game(SDL_Window *loadWindow, SDL_Renderer *loadRenderer, TTF_Font *loadFont) : gWindow(loadWindow),
-                                                                                     gRenderer(loadRenderer), currentFrameTimeTexture(gRenderer), gFont(loadFont), currentBlock(placedCells), pointsTexture(gRenderer)
-{
+Game::Game(SDL_Window *loadWindow, SDL_Renderer *loadRenderer, TTF_Font *loadFont)
+    : gWindow(loadWindow),
+      gRenderer(loadRenderer),
+      gFont(loadFont),
+      pCells(),  // Explicitly initialize pCells first
+      placedCells(pCells),  // Then pass pCells to placedCells
+      currentBlock(pCells),  // Finally pass pCells to currentBlock
+      currentFrameTimeTexture(gRenderer),
+      pointsTexture(gRenderer) {
+    
     handleGameResize();
-
     SDL_RenderGetViewport(gRenderer, &generalViewPort);
 
     currentBlock.type = static_cast<blockTypesNames>(rand() % BLOCK_TYPES_TOTAL);
@@ -104,12 +105,14 @@ Game::Game(SDL_Window *loadWindow, SDL_Renderer *loadRenderer, TTF_Font *loadFon
 
     nextBlock = static_cast<blockTypesNames>(rand() % BLOCK_TYPES_TOTAL);
 
-    currentBlock.reset();
+    currentBlock.reset();  // Reset current block state
 
     addPoints(0);
-
     startTime = SDL_GetTicks64();
 }
+
+
+
 void Game::handleEvents()
 {
     static Uint64 lastArrowDownClick = 0;
@@ -204,9 +207,9 @@ void Game::update()
 
     if (blockAutoMoved || blockMovedPlayer)
     {
-        if (isBlockPlaced())
+        if (currentBlock.isPlaced())
         {
-            placeCurrentBlock();
+            placedCells.placeBlock(currentBlock.pos,currentBlock.cells,currentBlock.color);
 
             currentBlock.cells = getBlockTypeCells(nextBlock);
             currentBlock.color = getBlockTypeColor(nextBlock);
@@ -215,13 +218,13 @@ void Game::update()
 
             currentBlock.reset();
 
-            std::vector<int> filledRows = getFilledRows();
+            std::vector<int> filledRows = placedCells.getFilledRows();
 
-            exit = isLost();
+            exit = placedCells.isLost();
 
             if (!filledRows.empty())
             {
-                clearRows(filledRows);
+                placedCells.clearRows(filledRows);
 
                 int pointsGained = calcPoints(filledRows.size());
                 addPoints(pointsGained);
@@ -276,39 +279,6 @@ void Game::drawCell(SDL_Point coords, SDL_Color color)
     SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, SDL_ALPHA_TRANSPARENT);
     // SDL_RenderDrawRect(gRenderer, &cellRect);
 }
-bool Game::isBlockPlaced()
-{
-    for (auto currentBlockCell : currentBlock.cells)
-    {
-        int currentBlockCellY = currentBlock.pos.y + currentBlockCell.y + 1;
-
-        if (currentBlockCellY == ROWS_QUANTITY)
-        {
-            return true;
-        }
-        for (auto placedCell : placedCells)
-        {
-            if (currentBlock.pos.x + currentBlockCell.x == placedCell.pos.x && currentBlockCellY == placedCell.pos.y)
-            {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-void Game::placeCurrentBlock()
-{
-    for (auto currentBlockCell : currentBlock.cells)
-    {
-        cell cellToPlace;
-
-        cellToPlace.color = currentBlock.color;
-        cellToPlace.pos.x = currentBlockCell.x + currentBlock.pos.x;
-        cellToPlace.pos.y = currentBlockCell.y + currentBlock.pos.y;
-
-        placedCells.push_back(cellToPlace);
-    }
-}
 void Game::handleGameResize()
 {
     int screenW, screenH;
@@ -332,7 +302,7 @@ void Game::drawCurrentBlock()
 }
 void Game::drawPlacedCells()
 {
-    for (auto placedCell : placedCells)
+    for (auto placedCell : placedCells.cells)
     {
         SDL_Point cellCords = {placedCell.pos.x, placedCell.pos.y};
 
@@ -343,7 +313,7 @@ void Game::drawNextBlock()
 {
 
     static blockTypesNames lastNextBlockType;
-    static std::array<SDL_Point, 4> nextBlockCells;
+    static std::array<SDL_Point, CELLS_IN_BLOCK> nextBlockCells;
     static SDL_Color nextBlockColor;
     static int nextBlockWidth;
 
@@ -384,45 +354,6 @@ void Game::drawNextBlock()
         SDL_RenderFillRect(gRenderer, &nextBlockRenderRect);
     }
 }
-void Game::clearRows(std::vector<int> rowsToClear)
-{
-    for (auto rowIndex : rowsToClear)
-    {
-        for (int i = placedCells.size() - 1, columnsCleared = 0; columnsCleared < 10; i--)
-        {
-            if (placedCells[i].pos.y == rowIndex)
-            {
-                placedCells.erase(placedCells.begin() + i);
-                columnsCleared++;
-            }
-        }
-        for (auto &placedCell : placedCells)
-        {
-            if (placedCell.pos.y < rowIndex)
-            {
-                placedCell.pos.y++;
-            }
-        }
-    }
-}
-std::vector<int> Game::getFilledRows()
-{
-    std::map<int, int> rowsLength;
-
-    for (auto placedCell : placedCells)
-    {
-        rowsLength[placedCell.pos.y]++;
-    }
-    std::vector<int> filledRows;
-    for (auto [rowIndex, rowLength] : rowsLength)
-    {
-        if (rowLength == COLUMNS_QUANTITY)
-        {
-            filledRows.push_back(rowIndex);
-        }
-    }
-    return filledRows;
-}
 int Game::calcPoints(int rowsCleared)
 {
     int pointsScored;
@@ -454,19 +385,6 @@ void Game::addPoints(int pointsToAdd)
     SDL_Color pointsTextureColor = {0, 0, 0, SDL_ALPHA_OPAQUE};
     pointsTexture.loadTextTexture(std::to_string(points), pointsTextureColor, gFont);
 }
-bool Game::isLost()
-{
-    bool isGameLost = false;
-    for (auto placedCell : placedCells)
-    {
-        if (placedCell.pos.y <= 0)
-        {
-            isGameLost = true;
-            break;
-        }
-    }
-    return isGameLost;
-}
 SDL_Color Game::getBlockTypeColor(blockTypesNames blockType)
 {
     SDL_Color color;
@@ -496,9 +414,9 @@ SDL_Color Game::getBlockTypeColor(blockTypesNames blockType)
     }
     return color;
 }
-std::array<SDL_Point, 4> Game::getBlockTypeCells(blockTypesNames blockType)
+std::array<SDL_Point, CELLS_IN_BLOCK> Game::getBlockTypeCells(blockTypesNames blockType)
 {
-    std::array<SDL_Point, 4> cells;
+    std::array<SDL_Point, CELLS_IN_BLOCK> cells;
     switch (blockType)
     {
     case BLOCK_TYPE_T:
