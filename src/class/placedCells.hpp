@@ -10,11 +10,14 @@
 #define COLUMNS_QUANTITY 10
 #endif
 
+#ifndef CELL_STRUCT
+#define CELL_STRUCT
 typedef struct cell
 {
     SDL_Point pos;
     SDL_Color color;
 } cell;
+#endif
 
 class PlacedCells
 {

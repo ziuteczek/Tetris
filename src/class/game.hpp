@@ -16,11 +16,14 @@
 
 #define DOUBLE_CLICK_DELAY 500
 
+#ifndef CELL_STRUCT
+#define CELL_STRUCT
 typedef struct block
 {
     SDL_Color color;
     std::array<SDL_Point, CELLS_IN_BLOCK> cells;
 } block;
+#endif
 
 enum arrows
 {
@@ -90,12 +93,13 @@ Game::Game(SDL_Window *loadWindow, SDL_Renderer *loadRenderer, TTF_Font *loadFon
     : gWindow(loadWindow),
       gRenderer(loadRenderer),
       gFont(loadFont),
-      pCells(),  // Explicitly initialize pCells first
-      placedCells(pCells),  // Then pass pCells to placedCells
-      currentBlock(pCells),  // Finally pass pCells to currentBlock
+      pCells(),
+      placedCells(pCells),
+      currentBlock(pCells),
       currentFrameTimeTexture(gRenderer),
-      pointsTexture(gRenderer) {
-    
+      pointsTexture(gRenderer)
+{
+
     handleGameResize();
     SDL_RenderGetViewport(gRenderer, &generalViewPort);
 
@@ -105,13 +109,11 @@ Game::Game(SDL_Window *loadWindow, SDL_Renderer *loadRenderer, TTF_Font *loadFon
 
     nextBlock = static_cast<blockTypesNames>(rand() % BLOCK_TYPES_TOTAL);
 
-    currentBlock.reset();  // Reset current block state
+    currentBlock.reset();
 
     addPoints(0);
     startTime = SDL_GetTicks64();
 }
-
-
 
 void Game::handleEvents()
 {
@@ -209,7 +211,7 @@ void Game::update()
     {
         if (currentBlock.isPlaced())
         {
-            placedCells.placeBlock(currentBlock.pos,currentBlock.cells,currentBlock.color);
+            placedCells.placeBlock(currentBlock.pos, currentBlock.cells, currentBlock.color);
 
             currentBlock.cells = getBlockTypeCells(nextBlock);
             currentBlock.color = getBlockTypeColor(nextBlock);

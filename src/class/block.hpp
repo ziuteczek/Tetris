@@ -19,11 +19,14 @@ enum blockTypesNames
     BLOCK_TYPES_TOTAL
 };
 
+#ifndef CELL_STRUCT
+#define CELL_STRUCT
 typedef struct cell
 {
     SDL_Point pos;
     SDL_Color color;
 } cell;
+#endif
 
 class TBlock
 {
